@@ -10,11 +10,12 @@ SONY最後のMSX1であるHB-11(HiTBiT-U)では、スロット3-0にある内蔵
 
 本パッチを適用したNEXTORをHB-11以外の機種で起動した場合、初期化が数十クロック遅くなります。
 
-HB-101など他のSONYのMSX1後期機種もアドレスを適切に変更すれば、同様の方法で対応可能と予測されますが、所持していないため対応できません。
+HB-101など他のSONYのMSX1後期機種もアドレスを適切に変更すれば、同様の方法で対応可能と推測されますが、所持していないため対応できません。
 
 ### 実行環境
 
 .NET6 もしくは .NET Framework 4.5以降でNEXTORのイメージファイルに対してコマンドラインでパッチを実行します。
+.NET Framework用バイナリはgithubのリリース([https://github.com/uniabis/nextor_patch_for_hb11/releases](https://github.com/uniabis/nextor_patch_for_hb11/releases))からダウンロード可能です。
 
 ### コマンドライン引数
 
