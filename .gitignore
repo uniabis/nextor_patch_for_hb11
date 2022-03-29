@@ -1,0 +1,5 @@
+bin/
+obj/
+.vs/
+/net6/testdata
+*.user
