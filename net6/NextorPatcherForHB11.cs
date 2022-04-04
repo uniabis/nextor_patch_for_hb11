@@ -49,13 +49,34 @@ namespace NextorPatcherForHB11
         private const int NEXTOR_KERNEL_BASE_ADDRSS = 0x4000;
         private const int NEXTOR_KERNEL_VERSION_OFFSET = 0x11E;
         private const string NEXTER_KERNEL_VERSION_MAGIC = "Nextor kernel version";
-
-        private static byte[] HB11_DISKBASIC_ENTRY_CODE = new byte[] { 0x3A, 0xB1, 0xFB, 0xB7, 0xDD, 0x21, 0xE9, 0x7D };
-        private static byte[] HB11_HRUNC__HANDLING_CODE = new byte[] { 0x21, 0xCB, 0xFE, 0x36, 0xF7, 0x23, 0x77, 0x23, 0x11 };
+        private const int NEXTOR_BANKSIZE = 16 * 1024;
 
         private const int HB11_DISKBASIC_ENTRY_ADDRESS = 0x59DB;
-        private const int HB11_DISKBASIC_PATCH1_ADDRESS = 0x76F0;
-        private const int HB11_DISKBASIC_PATCH2_ADDRESS = 0x76A0;
+
+        private const int NEXTOR_INIT2_ADDRESS = 0x47D8;
+        private const int NEXTOR_INIT2_DEFAULT = 0x480C;
+
+        private const int NEXTOR_BANK0_PATCH1_ADDRESS = 0x76F0;
+
+        private const int NEXTOR_BANK0_PATCH2_ADDRESS = 0x76E0;
+        private const int NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH = 5;
+
+        private const int NEXTOR_BANK4_PATCH3_BANK = 4;
+        private const int NEXTOR_BANK4_PATCH3_ADDRESS = 0x7BD0;
+        private const int NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH = 9;
+
+        private const int Z80_OPCODE_NOP = 0x00;
+        private const int Z80_OPCODE_LDE = 0x1E;
+        private const int Z80_OPCODE_LDHLI = 0x21;
+        private const int Z80_OPCODE_ANDA = 0xA7;
+        private const int Z80_OPCODE_XORA = 0xAF;
+        private const int Z80_OPCODE_JP = 0xC3;
+        private const int Z80_OPCODE_RET = 0xC9;
+        private const int Z80_OPCODE_CALL = 0xCD;
+        private const int Z80_OPCODE_POPHL = 0xE1;
+        private const int Z80_OPCODE_PUSHHL = 0xE5;
+        private const int Z80_OPCODE_DI = 0xF3;
+        private const int Z80_OPCODE_ORI = 0xF6;
 
         private static byte[] NEXTOR_2_1_0_BETA1_PATTERN = new byte[] { 0xBE, 0x20, 0x13, 0x13, 0x23, 0xA7, 0x20, 0xF7 };
         private static byte[] NEXTOR_2_1_0_BETA1_PATCH = new byte[] { 0xBE, 0xC2, 0xED, 0x59, 0x13, 0x23, 0xA7, 0xC2, 0xD6, 0x59, 0XC3, 0xDF, 0x59 };
@@ -136,10 +157,10 @@ namespace NextorPatcherForHB11
             return kernelVersionText;
         }
 
-        private bool CheckPatchAreaEmpty( int address, int length )
+        private bool CheckPatchAreaEmpty( int address, int length, int bank = 0 )
         {
             bool chkempty = true;
-            byte chkcode = buf[ address - NEXTOR_KERNEL_BASE_ADDRSS + 0 ];
+            int chkcode = GetByte( address, bank );
 
             if ( chkcode != 0x00 && chkcode != 0xFF )
             {
@@ -149,7 +170,7 @@ namespace NextorPatcherForHB11
             {
                 for ( int i = 1; i < length; i++ )
                 {
-                    if ( buf[ address - NEXTOR_KERNEL_BASE_ADDRSS + i ] != chkcode )
+                    if ( GetByte( address + i, bank ) != chkcode )
                     {
                         chkempty = false;
                         break;
@@ -227,11 +248,10 @@ namespace NextorPatcherForHB11
             return true;
         }
 
-        private byte[] GetPatchBinary( int index )
+        private byte[] GetPatchBinary( string name )
         {
             var asm = Assembly.GetExecutingAssembly();
-            var names = asm.GetManifestResourceNames();
-            using ( var stream = asm.GetManifestResourceStream( names[ index ] ) )
+            using ( var stream = asm.GetManifestResourceStream( name ) )
             {
                 var result = new byte[ stream?.Length ?? 0 ];
                 stream?.Read( result, 0, result.Length );
@@ -239,123 +259,243 @@ namespace NextorPatcherForHB11
             }
         }
 
+        private int AddressOf( byte[] pattern, int bank = 0 )
+        {
+            int banktopofs = bank * NEXTOR_BANKSIZE;
+            int ofs = IndexOf( buf, pattern, banktopofs ) - banktopofs;
+
+            if ( ofs < 0 || ofs >= NEXTOR_BANKSIZE )
+            {
+                return -1;
+            }
+            return ofs + NEXTOR_KERNEL_BASE_ADDRSS;
+        }
+
+        private void PatchByte( int addr, int value, int bank = 0 )
+        {
+            buf[ addr + bank * NEXTOR_BANKSIZE - NEXTOR_KERNEL_BASE_ADDRSS + 0 ] = ( byte )( value & 255 );
+        }
+
+        private void PatchWord( int addr, int value, int bank = 0 )
+        {
+            PatchByte( addr + 0, value >> 0, bank );
+            PatchByte( addr + 1, value >> 8, bank );
+        }
+
+        private void PatchBytes( int dstbank, int dstaddr, byte[] src, int srcofs = 0, int len = -1 )
+        {
+            if ( len == -1 )
+            {
+                len = src.Length - srcofs;
+            }
+            Array.Copy( src, srcofs, buf, dstaddr + dstbank * NEXTOR_BANKSIZE - NEXTOR_KERNEL_BASE_ADDRSS, len );
+        }
+
+        private void PatchBytes( int dstaddr, byte[] src, int srcofs = 0, int len = -1 )
+        {
+            PatchBytes( 0, dstaddr, src, srcofs, len );
+        }
+
+        private int GetByte( int addr, int bank = 0 )
+        {
+            return buf[ addr + bank * NEXTOR_BANKSIZE - NEXTOR_KERNEL_BASE_ADDRSS + 0 ];
+        }
+
+        private int GetWord( int addr, int bank = 0 )
+        {
+            return GetByte( addr, bank ) | ( GetByte( addr + 1, bank ) << 8 );
+        }
+
         private bool Patch()
         {
-            var patch2 = GetPatchBinary( 0 );
+            var HB11_DISKBASIC_ENTRY_CODE = GetPatchBinary( "hb11nex.hb11nex_search_diskbasic_entry_code.bin" );
+            var HRUNC_HANDLING_CODE = GetPatchBinary( "hb11nex.hb11nex_search_h_runc_handling_code.bin" );
+            var RTC_CODE = GetPatchBinary( "hb11nex.hb11nex_search_rtc_code.bin" );
 
-            if ( !CheckPatchAreaEmpty( HB11_DISKBASIC_PATCH1_ADDRESS, 0x10 ) )
+            var bank0_patch = GetPatchBinary( "hb11nex.hb11nex_bank0.bin" );
+            var bank0_ofs = new int[ NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH ];
+
+            for ( int i = 0; i < bank0_ofs.Length; i++ )
             {
-                log.AppendLine( $"HB-11 PATCH AREA{HB11_DISKBASIC_PATCH1_ADDRESS.ToString( "X4" )}:already used" );
+                bank0_ofs[ i ] = bank0_patch[ i * 2 + 0 ] | ( bank0_patch[ i * 2 + 1 ] << 8 );
+            }
+
+            var bank4_patch = GetPatchBinary( "hb11nex.hb11nex_bank4.bin" );
+            var bank4_ofs = new int[ NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH ];
+            int bank4 = NEXTOR_BANK4_PATCH3_BANK;
+
+            for ( int i = 0; i < bank4_ofs.Length; i++ )
+            {
+                bank4_ofs[ i ] = bank4_patch[ i * 2 + 0 ] | ( bank4_patch[ i * 2 + 1 ] << 8 );
+            }
+
+            if ( !CheckPatchAreaEmpty( NEXTOR_BANK0_PATCH1_ADDRESS, NEXTOR_2_1_0_BETA1_PATCH.Length ) )
+            {
+                log.AppendLine( $"HB-11 PATCH AREA{NEXTOR_BANK0_PATCH1_ADDRESS.ToString( "X4" )}:already used" );
                 return false;
             }
 
-            if ( !CheckPatchAreaEmpty( HB11_DISKBASIC_PATCH2_ADDRESS, patch2.Length ) )
+            if ( !CheckPatchAreaEmpty( NEXTOR_BANK0_PATCH2_ADDRESS, bank0_patch.Length - 2 * bank0_ofs.Length ) )
             {
-                log.AppendLine( $"HB-11 PATCH AREA{HB11_DISKBASIC_PATCH2_ADDRESS.ToString( "X4" )}:already used" );
+                log.AppendLine( $"HB-11 PATCH AREA{NEXTOR_BANK0_PATCH2_ADDRESS.ToString( "X4" )}:already used" );
                 return false;
             }
 
-            int hb11entryaddress = IndexOf( buf, HB11_DISKBASIC_ENTRY_CODE, 0 ) + NEXTOR_KERNEL_BASE_ADDRSS;
 
-            if ( hb11entryaddress < NEXTOR_KERNEL_BASE_ADDRSS )
+            if ( !CheckPatchAreaEmpty( NEXTOR_BANK4_PATCH3_ADDRESS, bank4_patch.Length - 2 * bank4_ofs.Length, bank4 ) )
+            {
+                log.AppendLine( $"HB-11 PATCH AREA{NEXTOR_BANK4_PATCH3_ADDRESS.ToString( "X4" )}(bank{bank4}):already used" );
+                return false;
+            }
+
+            int hb11entryaddress = AddressOf( HB11_DISKBASIC_ENTRY_CODE );
+
+            if ( hb11entryaddress < 0 )
             {
                 log.AppendLine( "DISK BASIC ENTRY CODE for HB-11:not found" );
                 return false;
             }
 
-            int hrunchandlingaddress = IndexOf( buf, HB11_HRUNC__HANDLING_CODE, 0 ) + NEXTOR_KERNEL_BASE_ADDRSS;
+            int init2handlingaddress = NEXTOR_INIT2_ADDRESS;
+            if ( GetByte( init2handlingaddress - 2 ) != Z80_OPCODE_DI
+                || GetByte( init2handlingaddress - 1 ) != Z80_OPCODE_LDHLI
+                || GetByte( init2handlingaddress + 2 ) != Z80_OPCODE_PUSHHL
+                || GetByte( init2handlingaddress + 3 ) != Z80_OPCODE_XORA )
+            {
+                log.AppendLine( "INIT2 HANDLING CODE:not found" );
+                return false;
+            }
 
-            if ( hrunchandlingaddress < NEXTOR_KERNEL_BASE_ADDRSS )
+            int init2handleraddress = GetWord( init2handlingaddress + 0 );
+            if ( init2handleraddress != NEXTOR_INIT2_DEFAULT )
+            {
+                log.AppendLine( "INIT2 HANDLER CODE:unknown" );
+                //return false;
+            }
+
+            int hrunchandlingaddress = AddressOf( HRUNC_HANDLING_CODE );
+
+            if ( hrunchandlingaddress < 0 )
             {
                 log.AppendLine( "H.RUNC HANDLING CODE:not found" );
                 return false;
             }
 
-            int hrunchandleraddress = ( buf[ hrunchandlingaddress - NEXTOR_KERNEL_BASE_ADDRSS + HB11_HRUNC__HANDLING_CODE.Length + 1 ] << 8 )
-                | buf[ hrunchandlingaddress - NEXTOR_KERNEL_BASE_ADDRSS + HB11_HRUNC__HANDLING_CODE.Length + 0 ];
+            hrunchandlingaddress += HRUNC_HANDLING_CODE.Length;
 
-            if ( IndexOf( buf, NEXTOR_2_1_0_BETA1_PATTERN, HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 4 ) == HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 4 )
+            int hrunchandleraddress = GetWord( hrunchandlingaddress );
+
+            int rtcadress = AddressOf( RTC_CODE, bank4 );
+
+            if ( rtcadress < 0 )
+            {
+                log.AppendLine( "CLK_END:not found" );
+                return false;
+            }
+
+            if ( AddressOf( NEXTOR_2_1_0_BETA1_PATTERN ) == HB11_DISKBASIC_ENTRY_ADDRESS - 4 )
             {
                 // 2.1.0 beta1
-                Array.Copy( NEXTOR_2_1_0_BETA1_PATCH, 0, buf, HB11_DISKBASIC_PATCH1_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS, NEXTOR_2_1_0_BETA1_PATCH.Length );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 4 ] = 0xC3;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 ] = ( byte )( ( HB11_DISKBASIC_PATCH1_ADDRESS >> 0 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 2 ] = ( byte )( ( HB11_DISKBASIC_PATCH1_ADDRESS >> 8 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 1 ] = 0x00;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 0 ] = 0xC3;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 1 ] = ( byte )( ( hb11entryaddress >> 0 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 2 ] = ( byte )( ( hb11entryaddress >> 8 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 3 ] = 0x00;
+                PatchBytes( NEXTOR_BANK0_PATCH1_ADDRESS, NEXTOR_2_1_0_BETA1_PATCH );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 4, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS - 3, NEXTOR_BANK0_PATCH1_ADDRESS );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 1, Z80_OPCODE_NOP );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 0, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS + 1, hb11entryaddress );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 3, Z80_OPCODE_NOP );
 
                 log.AppendLine( "HB-11 PATCH MODE:Nextor 2.1.0 beta1" );
             }
-            else if ( buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 4 ] == 0xE1
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 ] == 0xCD
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 0 ] == 0xCD
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 3 ] == 0xA7
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 4 ] == 0xC9 )
+            else if ( GetByte( HB11_DISKBASIC_ENTRY_ADDRESS - 4 ) == Z80_OPCODE_POPHL
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS - 3 ) == Z80_OPCODE_CALL
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS + 0 ) == Z80_OPCODE_CALL
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS + 3 ) == Z80_OPCODE_ANDA
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS + 4 ) == Z80_OPCODE_RET )
             {
                 // 2.1.0 beta2
                 // 2.1.0 rc1
-                for ( int i = 0; i < 8; i++ )
-                {
-                    buf[ HB11_DISKBASIC_PATCH1_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + i ] = buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 + i ];
-                }
-
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 ] = 0xC3;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 2 ] = ( byte )( ( HB11_DISKBASIC_PATCH1_ADDRESS >> 0 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 1 ] = ( byte )( ( HB11_DISKBASIC_PATCH1_ADDRESS >> 8 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 0 ] = 0xC3;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 1 ] = ( byte )( ( hb11entryaddress >> 0 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 2 ] = ( byte )( ( hb11entryaddress >> 8 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 3 ] = 0x00;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 4 ] = 0x00;
+                PatchBytes( NEXTOR_BANK0_PATCH1_ADDRESS, buf, HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3, 8 );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 3, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS - 2, NEXTOR_BANK0_PATCH1_ADDRESS );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 0, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS + 1, hb11entryaddress );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 3, Z80_OPCODE_NOP );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 4, Z80_OPCODE_NOP );
 
                 log.AppendLine( "HB-11 PATCH MODE:Nextor 2.1.0 beta2" );
             }
-            else if ( buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 ] == 0xE1
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 2 ] == 0xCD
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 1 ] == 0xCD
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 4 ] == 0xA7
-                && buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 5 ] == 0xC9 )
+            else if ( GetByte( HB11_DISKBASIC_ENTRY_ADDRESS - 3 ) == Z80_OPCODE_POPHL
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS - 2 ) == Z80_OPCODE_CALL
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS + 1 ) == Z80_OPCODE_CALL
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS + 4 ) == Z80_OPCODE_ANDA
+                && GetByte( HB11_DISKBASIC_ENTRY_ADDRESS + 5 ) == Z80_OPCODE_RET )
             {
                 // 2.1.0
                 // 2.1.1 alpha1
                 // 2.1.1 alpha2
                 // 2.1.1 beta1
                 // 2.1.1 beta2
-                for ( int i = 0; i < 9; i++ )
-                {
-                    buf[ HB11_DISKBASIC_PATCH1_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + i ] = buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 + i ];
-                }
-
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3 ] = 0xC3;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 2 ] = ( byte )( ( HB11_DISKBASIC_PATCH1_ADDRESS >> 0 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 1 ] = ( byte )( ( HB11_DISKBASIC_PATCH1_ADDRESS >> 8 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 0 ] = 0xC3;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 1 ] = ( byte )( ( hb11entryaddress >> 0 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 2 ] = ( byte )( ( hb11entryaddress >> 8 ) & 255 );
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 3 ] = 0x00;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 4 ] = 0x00;
-                buf[ HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 5 ] = 0x00;
+                PatchBytes( NEXTOR_BANK0_PATCH1_ADDRESS, buf, HB11_DISKBASIC_ENTRY_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS - 3, 9 );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 3, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS - 2, NEXTOR_BANK0_PATCH1_ADDRESS );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 0, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS + 1, hb11entryaddress );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 3, Z80_OPCODE_NOP );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 4, Z80_OPCODE_NOP );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 5, Z80_OPCODE_NOP );
 
                 log.AppendLine( "HB-11 PATCH MODE:Nextor 2.1.0" );
             }
             else
             {
-                log.AppendLine( "HB-11 PATCH MODE:unknown kernel" );
+                log.AppendLine( "HB-11 PATCH MODE:unknown kernel(bank0)" );
                 return false;
             }
 
-            Array.Copy( patch2, 0, buf, HB11_DISKBASIC_PATCH2_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS, patch2.Length );
-            buf[ HB11_DISKBASIC_PATCH2_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 1 ] = ( byte )( ( hrunchandleraddress >> 0 ) & 255 );
-            buf[ HB11_DISKBASIC_PATCH2_ADDRESS - NEXTOR_KERNEL_BASE_ADDRSS + 2 ] = ( byte )( ( hrunchandleraddress >> 8 ) & 255 );
-            buf[ hrunchandlingaddress - NEXTOR_KERNEL_BASE_ADDRSS + HB11_HRUNC__HANDLING_CODE.Length + 0 ] = ( byte )( ( HB11_DISKBASIC_PATCH2_ADDRESS >> 0 ) & 255 );
-            buf[ hrunchandlingaddress - NEXTOR_KERNEL_BASE_ADDRSS + HB11_HRUNC__HANDLING_CODE.Length + 1 ] = ( byte )( ( HB11_DISKBASIC_PATCH2_ADDRESS >> 8 ) & 255 );
+            PatchBytes( NEXTOR_BANK0_PATCH2_ADDRESS, bank0_patch, 2 * bank0_ofs.Length );
 
-            log.AppendLine( $"ADDRESS OF DISK BASIC ENTRY CODE:{hb11entryaddress.ToString( "X4" )}" );
-            log.AppendLine( $"ADDRESS OF H.RUNC HANDLING CODE:{hrunchandlingaddress.ToString( "X4" )}" );
-            log.AppendLine( $"ADDRESS OF H.RUNC HANDLER CODE:{hrunchandleraddress.ToString( "X4" )}" );
+            PatchByte( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 0 ], bank4 );
+
+            PatchWord( init2handlingaddress, NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 1 ] );
+            PatchWord( hrunchandlingaddress, NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 2 ] );
+
+            PatchWord( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 3 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 0 ] );
+            PatchWord( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 4 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 1 ] );
+
+            PatchBytes( bank4, NEXTOR_BANK4_PATCH3_ADDRESS, bank4_patch, 2 * bank4_ofs.Length );
+
+            int clk_end = rtcadress;
+            int clk_start = rtcadress + 0x0b;
+            int gt_date_time = rtcadress + 0x16;
+            int set_date = rtcadress + 0x62;
+
+            if ( GetByte( gt_date_time + 0, bank4 ) != Z80_OPCODE_CALL
+                || GetWord( gt_date_time + 1, bank4 ) != clk_start
+                || GetByte( gt_date_time + 3, bank4 ) != Z80_OPCODE_LDE
+                || GetByte( gt_date_time + 4, bank4 ) != 0x0D
+                || GetByte( set_date + 0, bank4 ) != Z80_OPCODE_CALL
+                || GetWord( set_date + 1, bank4 ) != clk_start
+                || GetByte( set_date + 3, bank4 ) != Z80_OPCODE_ORI
+                || GetByte( set_date + 4, bank4 ) != 0x01 )
+            {
+                log.AppendLine( $"NORTC PATCH MODE:unknown kernel(bank{bank4})" );
+                return false;
+            }
+
+            PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 2 ], init2handleraddress, bank4 );
+            PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 3 ], hrunchandleraddress, bank4 );
+
+            PatchWord( gt_date_time + 1, NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 4 ], bank4 );
+            PatchWord( set_date + 1, NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 5 ], bank4 );
+
+            PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 6 ], clk_start, bank4 );
+            PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 7 ], clk_start, bank4 );
+            PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 8 ], clk_end, bank4 );
+
+
+            // log.AppendLine( $"ADDRESS OF DISK BASIC ENTRY CODE:{hb11entryaddress.ToString( "X4" )}" );
+            // log.AppendLine( $"ADDRESS OF H.RUNC HANDLING CODE:{( hrunchandlingaddress + HRUNC_HANDLING_CODE.Length ).ToString( "X4" )}" );
+            // log.AppendLine( $"ADDRESS OF H.RUNC HANDLER CODE:{hrunchandleraddress.ToString( "X4" )}" );
 
             return true;
         }
@@ -403,7 +543,7 @@ namespace NextorPatcherForHB11
 #if NETCOREAPP
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            const string title = "NextorPatch For HB-11 version 0.0.1\n";
+            const string title = "NextorPatch For HB-11 version 0.0.2\n";
 
             string exe = ( Assembly.GetEntryAssembly()?.FullName ?? string.Empty )
                 .Split( ',' ).First();

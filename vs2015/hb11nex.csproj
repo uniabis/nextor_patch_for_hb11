@@ -29,7 +29,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -49,8 +49,20 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\z80\hb11nex.bin">
-      <Link>hb11nex.bin</Link>
+    <EmbeddedResource Include="..\z80\hb11nex_bank0.bin">
+      <Link>hb11nex_bank0.bin</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\z80\hb11nex_bank4.bin">
+      <Link>hb11nex_bank4.bin</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\z80\hb11nex_search_diskbasic_entry_code.bin">
+      <Link>hb11nex_search_diskbasic_entry_code.bin</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\z80\hb11nex_search_h_runc_handling_code.bin">
+      <Link>hb11nex_search_h_runc_handling_code.bin</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\z80\hb11nex_search_rtc_code.bin">
+      <Link>hb11nex_search_rtc_code.bin</Link>
     </EmbeddedResource>
     <None Include="App.config" />
   </ItemGroup>
