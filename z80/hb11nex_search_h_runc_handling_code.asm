@@ -1,3 +1,4 @@
+; Search code for CLEAN(H.RUNC handling)
 
 H.RUNC equ 0FECBh
 

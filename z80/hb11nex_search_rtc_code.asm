@@ -1,3 +1,5 @@
+; Search code for RTC
+
 CLK_END:
 
 	ld	a, 0Dh

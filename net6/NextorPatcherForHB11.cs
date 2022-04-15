@@ -56,7 +56,7 @@ namespace NextorPatcherForHB11
         private const int NEXTOR_INIT2_ADDRESS = 0x47D8;
         private const int NEXTOR_INIT2_DEFAULT = 0x480C;
 
-        private const int NEXTOR_BANK0_PATCH1_ADDRESS = 0x76F0;
+        private const int NEXTOR_BANK0_PATCH1_ADDRESS = 0x76F4;
 
         private const int NEXTOR_BANK0_PATCH2_ADDRESS = 0x76E0;
         private const int NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH = 5;
@@ -79,7 +79,7 @@ namespace NextorPatcherForHB11
         private const int Z80_OPCODE_ORI = 0xF6;
 
         private static byte[] NEXTOR_2_1_0_BETA1_PATTERN = new byte[] { 0xBE, 0x20, 0x13, 0x13, 0x23, 0xA7, 0x20, 0xF7 };
-        private static byte[] NEXTOR_2_1_0_BETA1_PATCH = new byte[] { 0xBE, 0xC2, 0xED, 0x59, 0x13, 0x23, 0xA7, 0xC2, 0xD6, 0x59, 0XC3, 0xDF, 0x59 };
+        private static byte[] NEXTOR_2_1_0_BETA1_PATCH = new byte[] { 0xC2, 0xED, 0x59, 0x13, 0x23, 0xA7, 0xC2, 0xD6, 0x59, 0XC3, 0xDF, 0x59 };
 
         private const string MFR_RECOVERY_MAGIC = "MFRSD KERNEL 1.0";
 
@@ -397,9 +397,8 @@ namespace NextorPatcherForHB11
             {
                 // 2.1.0 beta1
                 PatchBytes( NEXTOR_BANK0_PATCH1_ADDRESS, NEXTOR_2_1_0_BETA1_PATCH );
-                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 4, Z80_OPCODE_JP );
-                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS - 3, NEXTOR_BANK0_PATCH1_ADDRESS );
-                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 1, Z80_OPCODE_NOP );
+                PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS - 3, Z80_OPCODE_JP );
+                PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS - 2, NEXTOR_BANK0_PATCH1_ADDRESS );
                 PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 0, Z80_OPCODE_JP );
                 PatchWord( HB11_DISKBASIC_ENTRY_ADDRESS + 1, hb11entryaddress );
                 PatchByte( HB11_DISKBASIC_ENTRY_ADDRESS + 3, Z80_OPCODE_NOP );
@@ -543,7 +542,7 @@ namespace NextorPatcherForHB11
 #if NETCOREAPP
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            const string title = "NextorPatch For HB-11 version 0.0.2\n";
+            const string title = "NextorPatch For HB-11 version 0.0.3\n";
 
             string exe = ( Assembly.GetEntryAssembly()?.FullName ?? string.Empty )
                 .Split( ',' ).First();

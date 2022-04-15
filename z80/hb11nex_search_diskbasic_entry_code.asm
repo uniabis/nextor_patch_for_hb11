@@ -1,3 +1,5 @@
+; Search code for HB-11
+
 SRCBAS	equ	7DEEh
 BASROM	equ	0FBB1h
 

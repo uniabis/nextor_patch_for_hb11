@@ -1,7 +1,4 @@
-﻿
-; MSX BIOS
-
-IDBYT2 equ 002Dh
+; NEXTOR PATCH for MAPPER on MSX1
 
 ; MSX work
 
@@ -21,24 +18,9 @@ P3_REG equ 0FFh
 SSLOT equ 0FFFFh
 
 
-INIT2_PATCH:
-
-	ld	a, (IDBYT2)
-	or	a
-
-	call	z, MSX1_INIT2_PATCH
-
-	push	hl
-
-	;INIT2: Nextor initialize
-ORIGINAL_INIT2_ADDRESS:
-	ld	hl, 0
-
-	jp	JUMP_NEXTOR_BANK0
-
 MSX1_INIT2_PATCH:
 
-	; ページ2のプライマリースロットがページ3と同じになるようにする
+	; set primary slot of page 2 to the same as page 3
 	in	a, (PSLOT)
 	ld	d, a
 	rrca
@@ -50,7 +32,7 @@ MSX1_INIT2_PATCH:
 	or	b
 	out	(PSLOT), a
 
-	; ページ2のセカンダリースロットがページ3と同じになるようにする
+	; set secondary slot of page 2 to the same as page 3
 	ld	a, (SSLOT)
 	cpl
 	ld	e, a
@@ -69,17 +51,17 @@ MSX1_INIT2_PATCH:
 	jr	nc, .restoreslot
 
 
-	; ページ2をページ3初期セグメント(0)に設定
+	; set segment of page 2 to initial value
 	xor	a
 	out	(P2_REG), a
 
-	; ページ3の内容をページ2にコピー
+	; copy contents of page 3 to page 2
 	ld	hl, 0C000h
 	ld	de,  8000h
 	ld	bc,  3FFFh
 	ldir
 
-	; マッパーのセグメント選択状況を初期化(3-2-1-0)
+	; initialize segments of all pages
 	xor	a
 	out	(P3_REG),a
 	inc	a
@@ -100,13 +82,16 @@ MSX1_INIT2_PATCH:
 
 	pop	de
 
-	; ページ3のスロットのセカンダリースロットを復元
+	; restore secondary slot
 	ld	a, e
 	ld	(SSLOT), a
 
-	; プライマリースロットを復元
+	; restore primary slot
 	ld	a, d
 	out	(PSLOT), a
+
+	; set ZF
+	xor	a
 
 	ret
 
@@ -150,7 +135,7 @@ MSX1_INIT2_PATCH:
 
 	scf
 
-	; マッパーRAM
+	; RAM with mapper
 	; cf = 1, zf = 1
 	ret
 
@@ -167,10 +152,10 @@ MSX1_INIT2_PATCH:
 	scf
 	ccf
 
-	; マッパーではないRAM
+	; RAM without mapper
 	; cf = 0, zf = 1
 
-	; RAMではない
+	; no RAM
 	; cf = 0, zf = 0
 
 	ret

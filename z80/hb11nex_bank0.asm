@@ -1,7 +1,9 @@
 
+; NEXTOR
+
 CHGBNK equ 7FD0h
 
-	org	76E0h - 2 * 5
+	org	76E0h - (OFFSET_TABLE.top - OFFSET_TABLE)
 
 OFFSET_TABLE:
 
@@ -15,20 +17,16 @@ OFFSET_TABLE:
 .top:
 
 BANK0_INIT2_PATCH:
-	push	hl
-
 BANK4_INIT2_ADDRESS:
 	ld	hl, 0
 	jr	NEXTOR_BANK4_JUMP
 
 BANK0_CLEAN_PATCH:
-	push	hl
-
 BANK4_CLEAN_ADDRESS:
 	ld	hl, 0
 
 NEXTOR_BANK4_JUMP:
-	ex	(sp), hl
+	push	hl
 
 BANK4_SEGMENT:
 	ld	a, 4
