@@ -12,10 +12,12 @@ namespace NextorPatcherForHB11
         public bool Valid { get; private set; }
         public string InputPath { get; private set; }
         public string OutputPath { get; private set; }
+        public bool DisableUnmusicPatch { get; private set; }
         public NextorPatcherForHB11Parameter( string[] argv )
         {
             InputPath = string.Empty;
             OutputPath = string.Empty;
+            DisableUnmusicPatch = false;
             Valid = Parse( argv );
         }
         private bool Parse( string[] argv )
@@ -27,15 +29,22 @@ namespace NextorPatcherForHB11
             }
             for ( int i = 0; i < argv.Length; i++ )
             {
-                if ( argv[ i ].ToLower() == "-i"
+                if ( ( argv[ i ].ToLower() == "-i"
+                    || argv[ i ].ToLower() == "/i" )
                     && i + 1 < argv.Length )
                 {
                     InputPath = argv[ i + 1 ];
                 }
-                else if ( argv[ i ].ToLower() == "-o"
+                if ( ( argv[ i ].ToLower() == "-o"
+                    || argv[ i ].ToLower() == "/o" )
                     && i + 1 < argv.Length )
                 {
                     OutputPath = argv[ i + 1 ];
+                }
+                if ( argv[ i ].ToLower() == "-u"
+                    || argv[ i ].ToLower() == "/u" )
+                {
+                    DisableUnmusicPatch = true;
                 }
             }
             bool result = !string.IsNullOrEmpty( InputPath )
@@ -59,11 +68,15 @@ namespace NextorPatcherForHB11
         private const int NEXTOR_BANK0_PATCH1_ADDRESS = 0x76F4;
 
         private const int NEXTOR_BANK0_PATCH2_ADDRESS = 0x76E0;
-        private const int NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH = 5;
+        private const int NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH = 7;
+
+        private const int NEXTOR_BANK3_PATCH4_BANK = 3;
+        private const int NEXTOR_BANK3_PATCH4_ADDRESS = 0x76F7;
+        private const int NEXTOR_BANK3_PATCH4_OFFSET_TABLE_LENGTH = 3;
 
         private const int NEXTOR_BANK4_PATCH3_BANK = 4;
         private const int NEXTOR_BANK4_PATCH3_ADDRESS = 0x7BD0;
-        private const int NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH = 9;
+        private const int NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH = 11;
 
         private const int Z80_OPCODE_NOP = 0x00;
         private const int Z80_OPCODE_LDE = 0x1E;
@@ -306,45 +319,51 @@ namespace NextorPatcherForHB11
             return GetByte( addr, bank ) | ( GetByte( addr + 1, bank ) << 8 );
         }
 
+        private int[] GetOffsetTable( byte[] patch, int length )
+        {
+            var ofs = new int[ length ];
+
+            for ( int i = 0; i < ofs.Length; i++ )
+            {
+                ofs[ i ] = patch[ i * 2 + 0 ] | ( patch[ i * 2 + 1 ] << 8 );
+            }
+            return ofs;
+        }
+
+
         private bool Patch()
         {
             var HB11_DISKBASIC_ENTRY_CODE = GetPatchBinary( "hb11nex.hb11nex_search_diskbasic_entry_code.bin" );
             var HRUNC_HANDLING_CODE = GetPatchBinary( "hb11nex.hb11nex_search_h_runc_handling_code.bin" );
             var RTC_CODE = GetPatchBinary( "hb11nex.hb11nex_search_rtc_code.bin" );
+            var HIMEM_CODE = GetPatchBinary( "hb11nex.hb11nex_search_himem_code.bin" );
 
             var bank0_patch = GetPatchBinary( "hb11nex.hb11nex_bank0.bin" );
-            var bank0_ofs = new int[ NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH ];
+            var bank0_ofs = GetOffsetTable( bank0_patch, NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH );
 
-            for ( int i = 0; i < bank0_ofs.Length; i++ )
-            {
-                bank0_ofs[ i ] = bank0_patch[ i * 2 + 0 ] | ( bank0_patch[ i * 2 + 1 ] << 8 );
-            }
+            var bank3_patch = GetPatchBinary( "hb11nex.hb11nex_bank3.bin" );
+            var bank3_ofs = GetOffsetTable( bank3_patch, NEXTOR_BANK3_PATCH4_OFFSET_TABLE_LENGTH );
+            int bank3 = NEXTOR_BANK3_PATCH4_BANK;
 
             var bank4_patch = GetPatchBinary( "hb11nex.hb11nex_bank4.bin" );
-            var bank4_ofs = new int[ NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH ];
+            var bank4_ofs = GetOffsetTable( bank4_patch, NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH );
             int bank4 = NEXTOR_BANK4_PATCH3_BANK;
-
-            for ( int i = 0; i < bank4_ofs.Length; i++ )
-            {
-                bank4_ofs[ i ] = bank4_patch[ i * 2 + 0 ] | ( bank4_patch[ i * 2 + 1 ] << 8 );
-            }
 
             if ( !CheckPatchAreaEmpty( NEXTOR_BANK0_PATCH1_ADDRESS, NEXTOR_2_1_0_BETA1_PATCH.Length ) )
             {
-                log.AppendLine( $"HB-11 PATCH AREA{NEXTOR_BANK0_PATCH1_ADDRESS.ToString( "X4" )}:already used" );
+                log.AppendLine( $"PATCH AREA{NEXTOR_BANK0_PATCH1_ADDRESS.ToString( "X4" )}:already used" );
                 return false;
             }
 
             if ( !CheckPatchAreaEmpty( NEXTOR_BANK0_PATCH2_ADDRESS, bank0_patch.Length - 2 * bank0_ofs.Length ) )
             {
-                log.AppendLine( $"HB-11 PATCH AREA{NEXTOR_BANK0_PATCH2_ADDRESS.ToString( "X4" )}:already used" );
+                log.AppendLine( $"PATCH AREA{NEXTOR_BANK0_PATCH2_ADDRESS.ToString( "X4" )}:already used" );
                 return false;
             }
 
-
             if ( !CheckPatchAreaEmpty( NEXTOR_BANK4_PATCH3_ADDRESS, bank4_patch.Length - 2 * bank4_ofs.Length, bank4 ) )
             {
-                log.AppendLine( $"HB-11 PATCH AREA{NEXTOR_BANK4_PATCH3_ADDRESS.ToString( "X4" )}(bank{bank4}):already used" );
+                log.AppendLine( $"PATCH AREA{NEXTOR_BANK4_PATCH3_ADDRESS.ToString( "X4" )}(bank{bank4}):already used" );
                 return false;
             }
 
@@ -385,9 +404,9 @@ namespace NextorPatcherForHB11
 
             int hrunchandleraddress = GetWord( hrunchandlingaddress );
 
-            int rtcadress = AddressOf( RTC_CODE, bank4 );
+            int rtcaddress = AddressOf( RTC_CODE, bank4 );
 
-            if ( rtcadress < 0 )
+            if ( rtcaddress < 0 )
             {
                 log.AppendLine( "CLK_END:not found" );
                 return false;
@@ -456,17 +475,17 @@ namespace NextorPatcherForHB11
             PatchByte( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 0 ], bank4 );
 
             PatchWord( init2handlingaddress, NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 1 ] );
-            PatchWord( hrunchandlingaddress, NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 2 ] );
+            PatchWord( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 2 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 0 ] );
 
-            PatchWord( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 3 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 0 ] );
+            PatchWord( hrunchandlingaddress, NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 3 ] );
             PatchWord( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 4 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 1 ] );
 
             PatchBytes( bank4, NEXTOR_BANK4_PATCH3_ADDRESS, bank4_patch, 2 * bank4_ofs.Length );
 
-            int clk_end = rtcadress;
-            int clk_start = rtcadress + 0x0b;
-            int gt_date_time = rtcadress + 0x16;
-            int set_date = rtcadress + 0x62;
+            int clk_end = rtcaddress;
+            int clk_start = rtcaddress + 0x0b;
+            int gt_date_time = rtcaddress + 0x16;
+            int set_date = rtcaddress + 0x62;
 
             if ( GetByte( gt_date_time + 0, bank4 ) != Z80_OPCODE_CALL
                 || GetWord( gt_date_time + 1, bank4 ) != clk_start
@@ -491,6 +510,39 @@ namespace NextorPatcherForHB11
             PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 7 ], clk_start, bank4 );
             PatchWord( NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 8 ], clk_end, bank4 );
 
+            if ( !Parameters.DisableUnmusicPatch )
+            {
+                int dos2himem = AddressOf( HIMEM_CODE );
+                if ( dos2himem < 0 )
+                {
+                    log.AppendLine( "DOS2HIMEM:not found" );
+                    return false;
+                }
+
+                PatchByte( dos2himem + 0, Z80_OPCODE_CALL );
+                PatchWord( dos2himem + 1, NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 5 ] );
+                PatchWord( NEXTOR_BANK0_PATCH2_ADDRESS + bank0_ofs[ 6 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 9 ] );
+
+                if ( !CheckPatchAreaEmpty( NEXTOR_BANK3_PATCH4_ADDRESS, bank3_patch.Length - 2 * bank3_ofs.Length, bank3 ) )
+                {
+                    log.AppendLine( $"PATCH AREA{NEXTOR_BANK3_PATCH4_ADDRESS.ToString( "X4" )}(bank{bank3}):already used" );
+                    return false;
+                }
+
+                int dos1himem = AddressOf( HIMEM_CODE, bank3 );
+                if ( dos1himem < 0 )
+                {
+                    log.AppendLine( "DOS1HIMEM:not found" );
+                    return false;
+                }
+
+                PatchBytes( bank3, NEXTOR_BANK3_PATCH4_ADDRESS, bank3_patch, 2 * bank3_ofs.Length );
+                PatchByte( NEXTOR_BANK3_PATCH4_ADDRESS + bank3_ofs[ 0 ], bank4, bank3 );
+
+                PatchByte( dos1himem + 0, Z80_OPCODE_CALL, bank3 );
+                PatchWord( dos1himem + 1, NEXTOR_BANK3_PATCH4_ADDRESS + bank3_ofs[ 1 ], bank3 );
+                PatchWord( NEXTOR_BANK3_PATCH4_ADDRESS + bank3_ofs[ 2 ], NEXTOR_BANK4_PATCH3_ADDRESS + bank4_ofs[ 10 ], bank3 );
+            }
 
             // log.AppendLine( $"ADDRESS OF DISK BASIC ENTRY CODE:{hb11entryaddress.ToString( "X4" )}" );
             // log.AppendLine( $"ADDRESS OF H.RUNC HANDLING CODE:{( hrunchandlingaddress + HRUNC_HANDLING_CODE.Length ).ToString( "X4" )}" );
@@ -542,7 +594,7 @@ namespace NextorPatcherForHB11
 #if NETCOREAPP
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            const string title = "NextorPatch For HB-11 version 0.0.3\n";
+            const string title = "NextorPatch For HB-11 version 0.0.4\n";
 
             string exe = ( Assembly.GetEntryAssembly()?.FullName ?? string.Empty )
                 .Split( ',' ).First();

@@ -23,6 +23,10 @@ OFFSET_TABLE:
 	dw	CLK_START1 + 1 - .top
 	dw	CLK_START2 + 1 - .top
 	dw	CLK_END1 + 1 - .top
+
+	dw	HIMEM_PATCH_DOS2 - .top
+	dw	HIMEM_PATCH_DOS1 - .top
+
 .top:
 
 INIT2_PATCH:
@@ -51,9 +55,28 @@ ORIGINAL_CLEAN_ADDRESS:
 
 JUMP_NEXTOR_BANK0:
 	push	hl
+	xor	a
+JUMP_NEXTOR_CHGBNK
+	jp	CHGBNK
+
+HIMEM_PATCH_DOS2:
+	call	FREE_DISKBASIC2WORK
+	call	FREE_MSXMUSIC
+	call	FREE_DISKBASIC2WORK
 
 	xor	a
-	jp	CHGBNK
+	jr	RET_NEXTOR_CHGBNK
+
+HIMEM_PATCH_DOS1:
+	call	FREE_DISKBASIC1WORK
+	call	FREE_MSXMUSIC
+	call	FREE_DISKBASIC1WORK
+
+	ld	a, 3
+RET_NEXTOR_CHGBNK:
+	ld	hl, (HIMSAV)
+	ld	(HIMEM), hl
+	jr	JUMP_NEXTOR_CHGBNK
 
 	include	hb11nex_msx1_mapper_patch.inc
 
@@ -61,3 +84,4 @@ JUMP_NEXTOR_BANK0:
 
 	include	hb11nex_nortc_patch.inc
 
+	include	hb11nex_unmusic_patch.inc

@@ -14,7 +14,7 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/bin/Debug/net6.0/hb11nex.dll",
-            "args": ["-i", "../../testdata/Nextor-2.1.1-beta2.MegaFlashSDSCC.2-slots.ROM"],
+            "args": ["-i", "../../testdata/Nextor-2.1.1-beta2.MegaFlashSDSCC.2-slots.ROM","-o", "../../testdata/Nextor-2.1.1-beta2.MegaFlashSDSCC.2-slots.ROM.net6.out"],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
