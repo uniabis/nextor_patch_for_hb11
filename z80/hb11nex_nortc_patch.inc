@@ -53,7 +53,7 @@ GT_DATE_TIME_PATCH:
 CLK_START1:
 	jp	nz, 0
 
-	pop	hl
+	pop	af
 
 	ld	a, (F_SPSAVE + 0)
 	ld	h, a
@@ -83,8 +83,7 @@ SET_DATE_PATCH:
 CLK_START2:
 	jp	nz, 0
 
-	inc	sp
-	inc	sp
+	pop	af
 
 	push	de
 

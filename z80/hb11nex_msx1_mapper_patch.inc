@@ -1,26 +1,12 @@
 ; NEXTOR PATCH for MAPPER on MSX1
 
-; MSX work
-
-TXTTAB equ 0F676h
-BOTTOM equ 0FC48h
-
-; MSX I/O
-
-PSLOT equ 0A8h
-P0_REG equ 0FCh
-P1_REG equ 0FDh
-P2_REG equ 0FEh
-P3_REG equ 0FFh
-
-; MSX memory mapped I/O
-
-SSLOT equ 0FFFFh
-
+CHKCD1 equ 05Ah
+CHKCD2 equ 0A5h
 
 MSX1_INIT2_PATCH:
 
 	; set primary slot of page 2 to the same as page 3
+
 	in	a, (PSLOT)
 	ld	d, a
 	rrca
@@ -33,9 +19,23 @@ MSX1_INIT2_PATCH:
 	out	(PSLOT), a
 
 	; set secondary slot of page 2 to the same as page 3
-	ld	a, (SSLOT)
+
+	ld	hl, SSLOT
+	ld	a, (hl)
+	ld	e, a
+
+	; invert secondary slot of page 0 temporaly for check
+	xor 0FCh
+	ld	(hl), a	
+
+	cpl
+	cp	(hl)
+	ld	a, e
+	jr	nz, .notextended
+
 	cpl
 	ld	e, a
+
 	rrca
 	rrca
 	and	030h
@@ -43,26 +43,32 @@ MSX1_INIT2_PATCH:
 	ld	a, e
 	and	0CFh
 	or	b
-	ld	(SSLOT), a
+
+.notextended:
+	ld	(hl), a
+
+	; check page2
 
 	push	de
 
-	call	.checkmapper
-	jr	nc, .restoreslot
+	call	checkmapper
+	jr	nc, mappernotfound
 
+	; page2 and page3 are mapper
 
-	; set segment of page 2 to initial value
+	; set segment of page 2 to initial value of page3
 	xor	a
 	out	(P2_REG), a
 
 	; copy contents of page 3 to page 2
-	ld	hl, 0C000h
 	ld	de,  8000h
+	push	de
+	ld	hl, 0C000h
 	ld	bc,  3FFFh
 	ldir
 
 	; initialize segments of all pages
-	xor	a
+	;xor	a
 	out	(P3_REG),a
 	inc	a
 	out	(P2_REG),a
@@ -71,31 +77,33 @@ MSX1_INIT2_PATCH:
 	inc	a
 	out	(P0_REG),a
 
-	ld	hl, 08000h
+	; fix basic work
+	pop	hl
 	ld	(BOTTOM), hl
-	xor	a
-	ld	(hl), a
-	inc	hl
+	ld	(hl), l
+	inc	l
 	ld	(TXTTAB), hl
 
-.restoreslot:
+mappernotfound:
 
 	pop	de
-
-	; restore secondary slot
-	ld	a, e
-	ld	(SSLOT), a
 
 	; restore primary slot
 	ld	a, d
 	out	(PSLOT), a
+
+	; restore secondary slot
+	ld	a, e
+	ld	(SSLOT), a
 
 	; set ZF
 	xor	a
 
 	ret
 
-.checkmapper:
+
+
+checkmapper:
 
 	ld	hl, 08000h
 
@@ -103,13 +111,13 @@ MSX1_INIT2_PATCH:
 	out	(P2_REG), a
 
 	ld	b, (hl)
-	ld	(hl), 0AAh
+	ld	(hl), CHKCD2
 
 	xor	a
 	out	(P2_REG), a
 
 	ld	c, (hl)
-	ld	(hl), 055h
+	ld	(hl), CHKCD1
 
 	inc	a
 	out	(P2_REG), a
@@ -125,12 +133,12 @@ MSX1_INIT2_PATCH:
 	out	(P2_REG), a
 	ld	(hl), b
 
-	ld	a, e
-	cp	0AAh
+	ld	a, CHKCD2
+	cp	e
 	jr	nz, .nomapper
 
-	ld	a, d
-	cp	055h
+	ld	a, CHKCD1
+	cp	d
 	jr	nz, .nomapper
 
 	scf
@@ -139,24 +147,31 @@ MSX1_INIT2_PATCH:
 	; cf = 1, zf = 1
 	ret
 
+
+
 .nomapper:
 
-	ld	a, c
-	cp	0AAh
+  IFNDEF CHECK_NOMAPPERRAM
+	; RAM without mapper or no RAM
+	; cf = 0, zf = 0
+	or	a
+	ret
+  ELSE
+	ld	a, CHKCD2
+	cp	c
 	jr	nz, .noram
 
-	ld	a, e
-	cp	055h
+	ld	a, CHKCD1
+	cp	e
 
 .noram:
-	scf
-	ccf
 
 	; RAM without mapper
 	; cf = 0, zf = 1
-
 	; no RAM
 	; cf = 0, zf = 0
 
+	ret	nc
+	ccf
 	ret
-
+  ENDIF

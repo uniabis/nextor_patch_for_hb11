@@ -1,20 +1,4 @@
 
-; MSX BIOS
-
-  IFNUSED RDSLT
-RDSLT	equ	000Ch
-  ENDIF
-IDBYT3	equ	002Eh
-
-; MSX WORK
-
-HIMEM	equ	0FC4Ah
-EXPTBL	equ	0FCC1h
-SLTWRK	equ	0FD09h
-
-H.TIMI	equ	0FD9Fh
-H.MDTM	equ	0FF93h
-H.PHYD	equ	0FFA7h
 ; CP/M
 
 BDOS	equ	0005h
@@ -28,6 +12,7 @@ BASBDOS	equ	0F37Dh
 DOS1SIZFCB	equ	25h
 DOS1NUMFCB	equ	0F345h
 DOS1FCB	equ	0F353h
+DOS1SIZBLD	equ	19h
 DOS1BLOADCDDE	equ	0F377h
 
 ; MSX-DOS2
@@ -40,6 +25,7 @@ DOS2PATHNAM	equ	0F33Bh
 DOS2SECBUF	equ	0F34Dh
 DOS2MAXSEC	equ	0F34Fh
 DOS2DIRBUF	equ	0F351h
+DOS2SIZBLD	equ	0Dh
 
 ; Nextor
 
@@ -48,6 +34,7 @@ NEXMFLAGKILL	equ	4
 
 ; MSX-MUSIC
 
+MUSENA	equ	07FF6h
 MUSSLT	equ	0F97Ch
 MUSWRK	equ	0F97Dh
 MUSHSV	equ	0F9BBh
@@ -56,15 +43,11 @@ MUSWSZ	equ	12*6+12*32+9*39 ; 327h(807)
 
 FREE_MSXMUSIC:
 
-	ld	de, (MUSWRK)
 	call	CHECK_HIMEM
-	ret	nz
+	dw	MUSWRK
 
-	ld	a, (MUSSLT)
-	or	a
+	call	GET_MUSWRK
 	ret	z
-
-	call	GET_SLTWRKP1
 
 	bit	0, (hl)
 	ret	z
@@ -73,28 +56,37 @@ FREE_MSXMUSIC:
 	ld	hl, IDBYT3
 	call	RDSLT
 
-	dec	a
+	rra
+
+	ld	a, (MUSSLT)
 
 	ld	hl, H.TIMI + 1
-	jr	nz, .nomidi
+	jr	nc, .nomidi
 
 	; A1GT
 
 	ld	hl, H.MDTM + 1
 
-	ld	a, (MUSSLT)
+	;ld	a, (MUSSLT)
 	cp	(hl)
 	ret	nz
+
+	; stop timer
+	ld	b, a
 
 	xor	a
 	out	(0E9h), a
 	out	(0EAh), a
 
+	ld	a, b
+
 .nomidi:
 
-	ld	a, (MUSSLT)
+	;ld	a, (MUSSLT)
 	cp	(hl)
 	ret	nz
+
+	; restore hook
 
 	dec	hl
 
@@ -106,14 +98,35 @@ FREE_MSXMUSIC:
 
 	ldir
 
-	ld	hl, (HIMSAV)
+	; free MSX-MUSIC user work
+
 	ld	de, MUSWSZ
 	call	ADD_HIMEM
 
-	ld	a, (MUSSLT)
-	call	GET_SLTWRKP1
+	; dettach FM-PAC I/O
+
+	push	af
+
+	;ld	a, (MUSSLT)
+	ld	hl, MUSENA
+	call	RDSLT
+
+	ld	e, a
+	res	0, e
+
+	pop	af
+
+	;ld	a, (MUSSLT)
+	;ld	hl, MUSENA
+	call	WRSLT
+
+	; clear MSX-MUSIC slot work
+
+	call	GET_MUSWRK
 
 	res	0, (hl)
+
+	; clear MSX-MUSIC bios work
 
 	ld	a, 0C9h
 	ld	(MUSHSV), a
@@ -128,91 +141,123 @@ FREE_MSXMUSIC:
 	ret
 
 
-FREE_DISKBASIC2WORK:
-	ld	de, (DOS2BLDCHK)
-	call	CHECK_HIMEM
-	ret	nz
 
-	ld	de, 0Dh
+FREE_DISKBASIC2WORK:
+	call	CHECK_HIMEM
+	dw	DOS2BLDCHK
+
+	ld	de, DOS2SIZBLD
 	call	ADD_HIMEM
 
 	ld	a, (DOS2MFLAGS)
 	bit	NEXMFLAGKILL, a
 	ret	nz
 
-	ld	de, (DOS2DIRBUF)
 	call	CHECK_HIMEM
-	ret	nz
+	dw	DOS2DIRBUF
 
-	ld	de, (DOS2PATHNAM)
 	call	CHECK_HIMEM
-	ret	nz
+	dw	DOS2PATHNAM
 
-	ld	de, (DOS2SECBUF)
-	ld	(DOS2DIRBUF), de
-	ld	(DOS2PATHNAM), de
+	ld	hl, (DOS2SECBUF)
+	ld	(DOS2DIRBUF), hl
+	ld	(DOS2PATHNAM), hl
 
 	ld	de, (DOS2MAXSEC)
-	jr	ADD_HIMEM
+
+ADD_HIMEM:
+	ld	hl, (HIMSAV)
+	add	hl, de
+SET_HIMEM:
+	ld	(HIMSAV), hl
+	ret
+
+
 
 FREE_DISKBASIC1WORK:
-	ld	de, (DOS1BLOADCDDE+1)
 	call	CHECK_HIMEM
-	ret	nz
+	dw	DOS1BLOADCDDE+1
 
-	ld	de, 25
+	ld	de, DOS1SIZBLD
 	call	ADD_HIMEM
 
-	ld	de, (DOS1FCB)
 	call	CHECK_HIMEM
-	ret	nz
+	dw	DOS1FCB
+
+	;ld	hl, 0
+	ld	(DOS1FCB), hl
+
+	ex	de, hl
+	;ld d, 0
+	;ld	hl, (HIMSAV)
 
 	ld	a, (DOS1NUMFCB)
 	ld	b, a
-	ld	de, DOS1SIZFCB
+	ld	e, DOS1SIZFCB
 .lpfcb:
 	add	hl, de
 	djnz	.lpfcb
 
 	jr	SET_HIMEM
 
-ADD_HIMEM:
-	add	hl, de
-SET_HIMEM:
-	ld	(HIMSAV), hl
-	ret
+
 
 CHECK_HIMEM:
+	pop	hl
+	ld	e, (hl)
+	inc	hl
+	ld	d, (hl)
+	inc	hl
+	push	hl
+
+	ex	de, hl
+	ld	e, (hl)
+	inc	hl
+	ld	d, (hl)
+
 	ld	hl, (HIMSAV)
 	push	hl
 	or	a
 	sbc	hl, de
-	pop	hl
+	pop	de
+
+	ret	z
+
+	pop	de
 	ret
 
-	;x000SSPP
-GET_SLTWRKP1:
+
+
+GET_MUSWRK:
+
+	ld	a, (MUSSLT)
+	or	a
+	ret	z
+
+	; get slot work of page 1
+
+	; x000SSPP
 	and	8Fh
 	add	a
 	jr	c, .extended
 	and	06h
 .extended:
-	;000SSPP0
+	; 000SSPP0
 	ld	c, a
 	and	06h
-	;00000PP0
+	; 00000PP0
 	add	a
 	add	a
 	add	a
 	add	a
-	;0PP00000
+	; 0PP00000
 	or	c
-	;0PPSSPP0
+	; 0PPSSPP0
 	and	78h
-	;0PPSS000
+	; 0PPSS000
 	ld	c, a
 	ld	b, 0
-	ld	hl, SLTWRK+2
+	ld	hl, SLTWRK + 2
 	add	hl, bc
 	ret
 

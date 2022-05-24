@@ -1,4 +1,4 @@
-﻿# NextorPatch For HB-11 version 0.0.4
+﻿# NextorPatch For HB-11 version 0.0.5
 
 ## 概要
 
@@ -8,11 +8,13 @@ SONY最後のMSX1であるHB-11(HiTBiT-U)では、スロット3-0にある内蔵
 
 フラッシュメモリなどにより容易に修正可能な場合が多いNEXTOR側を改造することにより内蔵メニューと共存可能にします。
 
-本パッチを適用したNEXTORをHB-11以外の機種で起動した場合、初期化が数百クロック遅くなります。
+本パッチを適用したNEXTORでは、初期化が数百クロックほど遅くなりますが、HB-11以外の機種でも下記の機能が有効となります。
 
-HB-101など他のSONYのMSX1後期機種もアドレスを適切に変更すれば、同様の方法で対応可能と推測されますが、所持していないため動作確認できていません。
+- RTCが存在しない場合、DATEコマンドなどにより、メモリ上に保存された日付が使用されます。
 
-またRTCが存在しない場合の処理とMSX-MUSICの解放処理も追加しております。
+- ```CALL SYSTEM```時に```CALL MUSIC```で確保されたリソースを解放します。
+
+- 内蔵ソフトなどがH.STKE(0FEDAh)をフックするタイプの標準的なカートリッジ初期化手順である場合、起動時にカーソルキーの下を押し続けることで初期化処理をスキップします。
 
 ### 実行環境
 
@@ -48,7 +50,7 @@ Fractal2000 SD Mapper/Megaram 512KB
 似非RAM Maximum
 ```
 
-Fractal2000 SD Mapper/Megaram 512KBについてはドライバーがNextor 2.1.xに対応していなかったため、修正後、動作確認しました。DEV_CMDとDEV_FORMATを実装しただけです。
+Fractal2000 SD Mapper/Megaram 512KBについてはドライバーがNextor 2.1.xに対応していなかったため、[修正](https://github.com/uniabis/msxsdmapper)後、動作確認しました。DEV_CMDとDEV_FORMATを実装しただけです。
 
 似非RAM MaximumについてはNextorPatcherがNextor 2.1.1 beta2に対応していなかったため、xml変更後、動作確認しました。ハッシュ値を追加してturboパッチのアドレスを7500hから7600hに移動しただけです。新機能を試したい場合以外は2.1.0で問題ないものと思います。
 
@@ -87,7 +89,7 @@ DISK-BASICが無効と判定された場合、スロット0-0 の 7D20H に ```C
 
 DISK-BASICが有効と判定された場合、SP に 0C206h をセットし、マスターDOSカーネルのスロット(0F348H:MASTERS)の固定アドレス 59DBH に ```CALLF``` します。
 
-このアドレス(59DBH)は、DOS1ではDISK BASICの初期化処理となっています。turboRのDOS2やNEXTORのDOS1カーネルではDOS1と同等ですが、DOS2カーネルでは該当アドレスの処理は不定です。DOS2はMSX1に対応しないため考慮する必要はありません。NEXTORではinit.macの次の処理が本来 CALLF して欲しい場所と推測されます。
+このアドレス(59DBH)は、DOS1ではDISK BASICの初期化処理となっています。NEXTORやturboR内蔵DOS2のDOS1互換カーネルではDOS1と同等ですが、DOS2カーネルでは該当アドレスの処理は不定です。DOS2はMSX1に対応しないため考慮する必要はありません。NEXTORではinit.macの次の処理が本来 CALLF して欲しい場所と推測されます。
 
 ```
 SRCBAS	equ	7DEEh

@@ -1,17 +1,5 @@
 ; MACHINE SPECIFIC NEXTOR PATCH
 
-; MSX BIOS
-
-RDSLT equ 000Ch
-WRSLT equ 0014h
-CALLF equ 0030h
-USRTAB equ 0F39AH
-
-; MSX WORK
-
-H.INIP equ 0FDC7h
-H.STKE equ 0FEDAh
-
 ; SONY
 
 HB11_FIRMWARE_SLOT equ 83h
@@ -39,14 +27,43 @@ DETECT_MACHINES:
 
 DETECT_HB11:
 
-	ld	hl,HB11_H_STKE
+	ld	hl, HB11_H_STKE
 	call	CMP_HSTKE
 	jr	nz, DETECT_HB101
 
-	ld	de,HB11_ID_ADDRESS
+	ld	de, HB11_ID_ADDRESS
 	ld	c, HB11_FIRMWARE_SLOT
 	call	CMP_HITBIT
-	ret	nz
+	jr	z, FOUND_HB11
+
+DETECT_HB101:
+	ld	hl, HB101_H_STKE
+	call	CMP_HSTKE
+	jr	nz, DETECT_MBH3
+
+	ld	de, HB101_ID_ADDRESS
+	ld	c, HB101_FIRMWARE_SLOT
+	call	CMP_HITBIT
+	jr	z, FOUND
+
+DETECT_MBH3:
+	ld	hl, MBH3_H_STKE
+	call	CMP_HSTKE
+	jr	nz, DETECT_MSXWRITE
+
+	call	CMP_MBH3
+	jr	z, FOUND
+
+DETECT_MSXWRITE:
+	call	CHECK_MSXWRITE
+	jr	z, FOUND
+
+	ld	a, (NEWKEY+8)
+	bit	6, a
+	jr	z, FOUND
+	ret
+
+FOUND_HB11:
 
 	; HB-11
 
@@ -57,49 +74,15 @@ DETECT_HB11:
 	ldir
 
 	; work around for Word land sentence II
-	ld	hl, 0D001h
-	ld	(hl), 0F3h
+	ld	a, 0F3h
+	ld	(0D001h), a
 
 FOUND:
 
-	ld	hl, H.STKE
-	ld	(hl), 0C9h
+	ld	a, 0C9h
+	ld	(H.STKE), a
 
 	ret
-
-DETECT_HB101:
-	ld	hl, HB101_H_STKE
-	call	CMP_HSTKE
-	jr	nz, DETECT_MBH3
-
-	ld	de, HB101_ID_ADDRESS
-	ld	c, HB101_FIRMWARE_SLOT
-	call	CMP_HITBIT
-	ret	nz
-
-	; HB-101/201
-
-	jr	FOUND
-
-DETECT_MBH3:
-	ld	hl, MBH3_H_STKE
-	call	CMP_HSTKE
-	jr	nz, DETECT_MSXWRITE
-
-	call	CMP_MBH3
-	ret	nz
-
-	; MB-H3
-
-	jr	FOUND
-
-DETECT_MSXWRITE:
-	call	CHECK_MSXWRITE
-	ret	nz
-
-	; MSX Write
-
-	jr	FOUND
 
 CMP_HSTKE:
 	ld	de, H.STKE
@@ -182,14 +165,14 @@ CHECK_MSXWRITE:
 	ld	a, 0F7h
 	cpi
 	ret	nz
+
+	ld	c, (hl)
 	inc	hl
+
 	ld	b, 3
 	ld	de, MSXWRITE_H_STKE + 2
 	call	CMP_HSTKE.lp
 	ret	nz
-
-	ld	a, (H.STKE+1)
-	ld	c, a
 
 	ld	b, .magic_end - .magic
 	ld	de, MSXWRTIE_ID_ADDRESS
@@ -203,14 +186,14 @@ FS4600F_INIT2_PATCH:
 	call	.check
 	ret	nz
 
-	ld	a,FS4600F_FIRMWARE2_SLOT
-	ld	hl,7FF9h
-	ld	e,0
-	call	WRSLT
+	ld	hl, 7FF9h
+	ld	de, 0 + FS4600F_FIRMWARE2_SLOT*256
+	call	.wrsltde
 
-	ld	a,FS4600F_FIRMWARE2_SLOT
-	ld	hl,6000h
-	ld	e,4
+	ld	hl, 6000h
+	ld	de, 4 + FS4600F_FIRMWARE2_SLOT*256
+.wrsltde:
+	ld	a, d
 	jp	WRSLT
 
 .check:

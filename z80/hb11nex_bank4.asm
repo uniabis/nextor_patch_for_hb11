@@ -1,7 +1,6 @@
 
-; MSX BIOS
+	include	hb11nex_msx_common.inc
 
-IDBYT2 equ 002Dh
 
 ; NEXTOR
 
@@ -41,7 +40,7 @@ INIT2_PATCH:
 ORIGINAL_INIT2_ADDRESS:
 	ld	hl, 0
 
-	jr	JUMP_NEXTOR_BANK0
+	jr	JUMPHL_NEXTOR_BANK0
 
 CLEAN_PATCH:
 
@@ -53,7 +52,7 @@ CLEAN_PATCH:
 ORIGINAL_CLEAN_ADDRESS:
 	ld	hl, 0
 
-JUMP_NEXTOR_BANK0:
+JUMPHL_NEXTOR_BANK0:
 	push	hl
 	xor	a
 JUMP_NEXTOR_CHGBNK
@@ -65,7 +64,7 @@ HIMEM_PATCH_DOS2:
 	call	FREE_DISKBASIC2WORK
 
 	xor	a
-	jr	RET_NEXTOR_CHGBNK
+	jr	HIMEM_RET
 
 HIMEM_PATCH_DOS1:
 	call	FREE_DISKBASIC1WORK
@@ -73,7 +72,7 @@ HIMEM_PATCH_DOS1:
 	call	FREE_DISKBASIC1WORK
 
 	ld	a, 3
-RET_NEXTOR_CHGBNK:
+HIMEM_RET:
 	ld	hl, (HIMSAV)
 	ld	(HIMEM), hl
 	jr	JUMP_NEXTOR_CHGBNK
@@ -85,3 +84,5 @@ RET_NEXTOR_CHGBNK:
 	include	hb11nex_nortc_patch.inc
 
 	include	hb11nex_unmusic_patch.inc
+
+	;assert $<=CHGBNK
