@@ -29,6 +29,7 @@ OFFSET_TABLE:
 .top:
 
 INIT2_PATCH:
+	call	ROMSKIP_PATCH
 
 	ld	a, (IDBYT2)
 	or	a
@@ -85,4 +86,5 @@ HIMEM_RET:
 
 	include	hb11nex_unmusic_patch.inc
 
+	include	hb11nex_romskip_patch.inc
 	;assert $<=CHGBNK

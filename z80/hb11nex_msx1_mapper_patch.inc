@@ -61,21 +61,13 @@ MSX1_INIT2_PATCH:
 	out	(P2_REG), a
 
 	; copy contents of page 3 to page 2
-	ld	de,  8000h
-	push	de
+	ex	de, hl
 	ld	hl, 0C000h
 	ld	bc,  3FFFh
-	ldir
 
-	; initialize segments of all pages
-	;xor	a
-	out	(P3_REG),a
-	inc	a
-	out	(P2_REG),a
-	inc	a
-	out	(P1_REG),a
-	inc	a
-	out	(P0_REG),a
+	push	de
+
+	call	copymapper
 
 	; fix basic work
 	pop	hl
@@ -84,7 +76,9 @@ MSX1_INIT2_PATCH:
 	inc	l
 	ld	(TXTTAB), hl
 
+	scf
 mappernotfound:
+	call	nc, resetmapper
 
 	pop	de
 
@@ -101,6 +95,19 @@ mappernotfound:
 
 	ret
 
+copymapper:
+	ldir
+resetmapper:
+	; initialize segments of all pages
+	xor	a
+	out	(P3_REG),a
+	inc	a
+	out	(P2_REG),a
+	inc	a
+	out	(P1_REG),a
+	inc	a
+	out	(P0_REG),a
+	ret
 
 
 checkmapper:

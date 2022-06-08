@@ -266,8 +266,12 @@ namespace NextorPatcherForHB11
             var asm = Assembly.GetExecutingAssembly();
             using ( var stream = asm.GetManifestResourceStream( name ) )
             {
-                var result = new byte[ stream?.Length ?? 0 ];
-                stream?.Read( result, 0, result.Length );
+                if ( stream == null )
+                {
+                    throw new ArgumentException( name );
+                }
+                var result = new byte[ stream.Length ];
+                stream.Read( result, 0, result.Length );
                 return result;
             }
         }
@@ -333,19 +337,19 @@ namespace NextorPatcherForHB11
 
         private bool Patch()
         {
-            var HB11_DISKBASIC_ENTRY_CODE = GetPatchBinary( "hb11nex.hb11nex_search_diskbasic_entry_code.bin" );
-            var HRUNC_HANDLING_CODE = GetPatchBinary( "hb11nex.hb11nex_search_h_runc_handling_code.bin" );
-            var RTC_CODE = GetPatchBinary( "hb11nex.hb11nex_search_rtc_code.bin" );
-            var HIMEM_CODE = GetPatchBinary( "hb11nex.hb11nex_search_himem_code.bin" );
+            var HB11_DISKBASIC_ENTRY_CODE = GetPatchBinary( "hb11nex.bin.hb11nex_search_diskbasic_entry_code.bin" );
+            var HRUNC_HANDLING_CODE = GetPatchBinary( "hb11nex.bin.hb11nex_search_h_runc_handling_code.bin" );
+            var RTC_CODE = GetPatchBinary( "hb11nex.bin.hb11nex_search_rtc_code.bin" );
+            var HIMEM_CODE = GetPatchBinary( "hb11nex.bin.hb11nex_search_himem_code.bin" );
 
-            var bank0_patch = GetPatchBinary( "hb11nex.hb11nex_bank0.bin" );
+            var bank0_patch = GetPatchBinary( "hb11nex.bin.hb11nex_bank0.bin" );
             var bank0_ofs = GetOffsetTable( bank0_patch, NEXTOR_BANK0_PATCH2_OFFSET_TABLE_LENGTH );
 
-            var bank3_patch = GetPatchBinary( "hb11nex.hb11nex_bank3.bin" );
+            var bank3_patch = GetPatchBinary( "hb11nex.bin.hb11nex_bank3.bin" );
             var bank3_ofs = GetOffsetTable( bank3_patch, NEXTOR_BANK3_PATCH4_OFFSET_TABLE_LENGTH );
             int bank3 = NEXTOR_BANK3_PATCH4_BANK;
 
-            var bank4_patch = GetPatchBinary( "hb11nex.hb11nex_bank4.bin" );
+            var bank4_patch = GetPatchBinary( "hb11nex.bin.hb11nex_bank4.bin" );
             var bank4_ofs = GetOffsetTable( bank4_patch, NEXTOR_BANK4_PATCH3_OFFSET_TABLE_LENGTH );
             int bank4 = NEXTOR_BANK4_PATCH3_BANK;
 
@@ -594,7 +598,7 @@ namespace NextorPatcherForHB11
 #if NETCOREAPP
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            const string title = "NextorPatch For HB-11 version 0.0.5\n";
+            const string title = "NextorPatch For HB-11 version 0.0.6\n";
 
             string exe = ( Assembly.GetEntryAssembly()?.FullName ?? string.Empty )
                 .Split( ',' ).First();

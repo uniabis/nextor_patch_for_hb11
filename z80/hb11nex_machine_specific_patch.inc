@@ -58,6 +58,7 @@ DETECT_MSXWRITE:
 	call	CHECK_MSXWRITE
 	jr	z, FOUND
 
+	;check [DOWN] key
 	ld	a, (NEWKEY+8)
 	bit	6, a
 	jr	z, FOUND

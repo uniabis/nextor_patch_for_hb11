@@ -50,25 +50,25 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\z80\hb11nex_bank0.bin">
-      <Link>hb11nex_bank0.bin</Link>
+      <Link>bin\hb11nex_bank0.bin</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\z80\hb11nex_bank3.bin">
-      <Link>hb11nex_bank3.bin</Link>
+      <Link>bin\hb11nex_bank3.bin</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\z80\hb11nex_bank4.bin">
-      <Link>hb11nex_bank4.bin</Link>
+      <Link>bin\hb11nex_bank4.bin</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\z80\hb11nex_search_diskbasic_entry_code.bin">
-      <Link>hb11nex_search_diskbasic_entry_code.bin</Link>
+      <Link>bin\hb11nex_search_diskbasic_entry_code.bin</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\z80\hb11nex_search_himem_code.bin">
-      <Link>hb11nex_search_himem_code.bin</Link>
+      <Link>bin\hb11nex_search_himem_code.bin</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\z80\hb11nex_search_h_runc_handling_code.bin">
-      <Link>hb11nex_search_h_runc_handling_code.bin</Link>
+      <Link>bin\hb11nex_search_h_runc_handling_code.bin</Link>
     </EmbeddedResource>
     <EmbeddedResource Include="..\z80\hb11nex_search_rtc_code.bin">
-      <Link>hb11nex_search_rtc_code.bin</Link>
+      <Link>bin\hb11nex_search_rtc_code.bin</Link>
     </EmbeddedResource>
     <None Include="App.config" />
   </ItemGroup>
