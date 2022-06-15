@@ -26,7 +26,7 @@ NO_RTC_PATCH_INIT:
 
 	jr	nz, NORTC
 
-CLK_END1:
+CLK_END1 equ $+1
 	call	0
 
 	; has RTC
@@ -50,7 +50,7 @@ GT_DATE_TIME_PATCH:
 	ld	a, (TIMFLG)
 	or	a
 
-CLK_START1:
+CLK_START1 equ $+1
 	jp	nz, 0
 
 	pop	af
@@ -80,7 +80,7 @@ SET_DATE_PATCH:
 	ld	a, (TIMFLG)
 	or	a
 
-CLK_START2:
+CLK_START2 equ $+1
 	jp	nz, 0
 
 	pop	af

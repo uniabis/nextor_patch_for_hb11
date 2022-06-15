@@ -1,70 +1,63 @@
 ; MACHINE SPECIFIC NEXTOR PATCH
 
-; SONY
-
-HB11_FIRMWARE_SLOT equ 83h
-HB11_ID_ADDRESS equ 5DB2h
-
-HB101_FIRMWARE_SLOT equ 03h
-HB101_ID_ADDRESS equ 4027h
-
-; Hitachi
-
-MBH3_FIRMWARE_SLOT equ 83h
-MBH3_ID_ADDRESS equ 4308h
-
-; Matsushita
-
-FS4600F_FIRMWARE1_SLOT equ 88h
-FS4600F_ID_ADDRESS equ 0B9C6h
-FS4600F_FIRMWARE2_SLOT equ 87h
-
-; ASCII MSX-Write
-
-MSXWRTIE_ID_ADDRESS equ 9A32h
-
 DETECT_MACHINES:
 
-DETECT_HB11:
+	call	CHECK_HITBIT
+	db	83h
+	dw	5E60h, 5DB2h
+	jr	z, .foundHB11
 
-	ld	hl, HB11_H_STKE
-	call	CMP_HSTKE
-	jr	nz, DETECT_HB101
+	call	CHECK_SELECT_KEY
+	jr	z, .hitSelect1
 
-	ld	de, HB11_ID_ADDRESS
-	ld	c, HB11_FIRMWARE_SLOT
-	call	CMP_HITBIT
-	jr	z, FOUND_HB11
-
-DETECT_HB101:
-	ld	hl, HB101_H_STKE
-	call	CMP_HSTKE
-	jr	nz, DETECT_MBH3
-
-	ld	de, HB101_ID_ADDRESS
-	ld	c, HB101_FIRMWARE_SLOT
-	call	CMP_HITBIT
+	call	CHECK_HITBIT
+	db	03h
+	dw	4043h, 4027h
 	jr	z, FOUND
 
-DETECT_MBH3:
-	ld	hl, MBH3_H_STKE
-	call	CMP_HSTKE
-	jr	nz, DETECT_MSXWRITE
-
-	call	CMP_MBH3
+	call	CHECK_HITBIT
+	db	87h
+	dw	4076h, 4042h
 	jr	z, FOUND
 
-DETECT_MSXWRITE:
+	call	CHECK_HITBIT
+	db	87h
+	dw	4079h, 4045h
+	jr	z, FOUND
+
+	call	CHECK_HITBIT
+	db	84h
+	dw	4051h, 4027h
+	jr	z, FOUND
+
+	call	CHECK_HITBIT
+	db	87h
+	dw	405Ch, 40B8h
+	jr	z, FOUND
+
+	call	CHECK_MBH3
+	jr	z, FOUND
+
 	call	CHECK_MSXWRITE
 	jr	z, FOUND
 
+.checkDown:
 	;check [DOWN] key
 	ld	a, (NEWKEY+8)
 	bit	6, a
 	jr	z, FOUND
 	ret
 
-FOUND_HB11:
+.hitSelect1:
+	ld	a, (H.STKE)
+	cp	0C9h
+	jr	z, .checkDown
+.hitSelect2:
+	ld	hl, 6474h
+	ld	(USRTAB), hl
+	jr	.checkDown
+
+.foundHB11:
 
 	; HB-11
 
@@ -78,26 +71,52 @@ FOUND_HB11:
 	ld	a, 0F3h
 	ld	(0D001h), a
 
+	call	CHECK_SELECT_KEY
+	jr	z, .hitSelect2
+
 FOUND:
 
-	ld	a, 0C9h
-	ld	(H.STKE), a
+	ld	hl, H.STKE
+	ld	b, 5
+.lp:
+	ld	(hl), 0C9h
+	inc	hl
+	djnz .lp
 
 	ret
 
-CMP_HSTKE:
-	ld	de, H.STKE
-	ld	b, 5
-.lp:
-	ld	a, (de)
-	inc	de
+CHECK_H_STEK_402E:
+	ld	de, 402Eh
 
-	cp	(hl)
-	inc	hl
+	; [in]
+	;  a:slot
+	;  de:handler
+	; [out]
+	;  ZF:1(match)
+	;  c:slot
+	; [work]
+	;  a, hl
+CHECK_H_STEK:
+	ld	c, a
+	ld	hl, H.STKE
+	ld	a, (hl)
+	cp	0F7h
 	ret	nz
-
-	djnz	.lp
-
+	inc	hl
+	ld	a, (hl)
+	cp	c
+	ret	nz
+	inc	hl
+	ld	a, (hl)
+	cp	e
+	ret	nz
+	inc	hl
+	ld	a, (hl)
+	cp	d
+	ret	nz
+	inc	hl
+	ld	a, (hl)
+	cp	0C9h
 	ret
 
 CMP_SLOT:
@@ -121,7 +140,30 @@ CMP_SLOT:
 
 	ret
 
-CMP_HITBIT:
+CHECK_HITBIT:
+	pop	hl
+
+	ld	a, (hl)
+	inc	hl
+	ld	e, (hl)
+	inc	hl
+	ld	d, (hl)
+	inc	hl
+	ld	c, (hl)
+	inc	hl
+	ld	b, (hl)
+	inc	hl
+
+	push	hl
+
+	push	bc
+
+	call	CHECK_H_STEK
+
+	pop	de
+
+	ret	nz
+
 	ld	b, .magic_end - .magic
 	call	CMP_SLOT
 .magic:
@@ -130,78 +172,81 @@ CMP_HITBIT:
 
 HB11_H_INIP:
 	rst	CALLF
-	db	HB11_FIRMWARE_SLOT
+	db	83h
 	dw	5DE9h
 	ret
 
-HB11_H_STKE:
-	rst	CALLF
-	db	HB11_FIRMWARE_SLOT
-	dw	5E60h
-	ret
+CHECK_MBH3:
+	ld	a, 83h
+	call	CHECK_H_STEK_402E
+	ret	nz
 
-HB101_H_STKE:
-	rst	CALLF
-	db	HB101_FIRMWARE_SLOT
-	dw	4043h
-	ret
-
-CMP_MBH3:
-	ld	bc, MBH3_FIRMWARE_SLOT+(.magic_end - .magic)*256
-	ld	de, MBH3_ID_ADDRESS
+	ld	b, .magic_end - .magic
+	ld	de, 4308h
 	call	CMP_SLOT
 .magic:
 	db	'H3',0,'HCOPY'
 .magic_end:
 
-MBH3_H_STKE:
-MSXWRITE_H_STKE:
-	rst	CALLF
-	db	MBH3_FIRMWARE_SLOT
-	dw	402Eh
-	ret
-
 CHECK_MSXWRITE:
-	ld	hl, H.STKE
-	ld	a, 0F7h
-	cpi
-	ret	nz
-
-	ld	c, (hl)
-	inc	hl
-
-	ld	b, 3
-	ld	de, MSXWRITE_H_STKE + 2
-	call	CMP_HSTKE.lp
+	ld	a, (H.STKE+1)
+	call	CHECK_H_STEK_402E
 	ret	nz
 
 	ld	b, .magic_end - .magic
-	ld	de, MSXWRTIE_ID_ADDRESS
+	ld	de, 9A32h
 	call	CMP_SLOT
 .magic:
 	db	'YAMAHA-MSX-JWP-SYSTEM'
 .magic_end:
 
 
-FS4600F_INIT2_PATCH:
-	call	.check
+CHECK_SELECT_KEY:
+	;check [SELECT] key
+	ld	a, (NEWKEY+7)
+	and	40h
+	ret
+
+PANASONIC_INIT2_PATCH:
+
+	call	CHECK_SELECT_KEY
+	ret	z
+
+	ld	a, 23h
+	;FS-A1
+	ld	(0CBD8H), a
+	ld	(0C3D2H), a
+	ld	(0C3CEH), a
+
+	;FS-A1WX/ST
+	ld	hl, .magic_vje80a
+	ld	de, 0C010h
+	ld	bc, .magic_vje80a_end - .magic_vje80a
+
+	ldir
+
+	call	.check_fs4600f
 	ret	nz
 
 	ld	hl, 7FF9h
-	ld	de, 0 + FS4600F_FIRMWARE2_SLOT*256
+	ld	de, 8700h
 	call	.wrsltde
 
 	ld	hl, 6000h
-	ld	de, 4 + FS4600F_FIRMWARE2_SLOT*256
+	ld	de, 8704h
 .wrsltde:
 	ld	a, d
 	jp	WRSLT
 
-.check:
-	ld	bc, FS4600F_FIRMWARE1_SLOT+(.magic_end - .magic)*256
-	ld	de, FS4600F_ID_ADDRESS
+.check_fs4600f:
+	ld	bc, 88h+(.magic_fs4600f_end - .magic_fs4600f)*256
+	ld	de, 0B9C6h
 	call	CMP_SLOT
-.magic:
+.magic_fs4600f:
 	db	'Matsushita 1985'
-.magic_end:
+.magic_fs4600f_end:
+
+.magic_vje80a:
+	db	'JWrite'
+.magic_vje80a_end:
 

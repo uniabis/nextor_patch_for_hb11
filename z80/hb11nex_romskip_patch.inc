@@ -6,9 +6,9 @@ GSLOT1	equ	402Dh
 CALBNK	equ	4042h
 
 ROMSKIP_PATCH:
-	;check [SELECT] key
+	;check [ESC]+[BS] key
 	ld	a, (NEWKEY+7)
-	bit	6, a
+	and	24h
 	ret	nz
 
 	xor	a
@@ -17,9 +17,9 @@ ROMSKIP_PATCH:
 
 	ld	hl, 06h + 2
 	add	a
-	jr	nc, .noext
+	jr	nc, .noext1
 	ld	l, 0Eh + 2
-.noext:
+.noext1:
 
 	add	hl, sp
 
@@ -45,20 +45,20 @@ ROMSKIP_PATCH:
 	ld	l, (ix + 4)
 	ld	h, (ix + 5)
 
-	ld	a, 60h ; SLTATR : STATEMENT + DEVICE
-	ld	(hl), a
+	ld	(hl), 60h ; SLTATR : STATEMENT + DEVICE
 
-	ld	a, (ix + 0)
+	bit	7, (ix + 0)
 
-	ld	(ix + 0), 03h ; slot 3
+	ld	a, 03h ; slot 3
+	jr	z, .noext2
+	ld	a, 8Fh ; slot 3-3
+.noext2:
+
+	ld	(ix + 0), a
 	ld	(ix + 3), 80h ; page 2
 	ld	(ix + 4), 000h
 	ld	(ix + 5), 000h
 	ld	(ix + 6), 0C4h ; 0FCC4h : EXPTBL for slot 3
 
-	add	a
-	ret	nc
-
-	ld	(ix + 0), 8Fh ; slot 3-3
 	ret
 

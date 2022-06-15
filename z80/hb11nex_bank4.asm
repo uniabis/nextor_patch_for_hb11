@@ -13,15 +13,15 @@ OFFSET_TABLE:
 	dw	INIT2_PATCH - .top
 	dw	CLEAN_PATCH - .top
 
-	dw	ORIGINAL_INIT2_ADDRESS + 1 - .top
-	dw	ORIGINAL_CLEAN_ADDRESS + 1 - .top
+	dw	ORIGINAL_INIT2_ADDRESS - .top
+	dw	ORIGINAL_CLEAN_ADDRESS - .top
 
 	dw	GT_DATE_TIME_PATCH - .top
 	dw	SET_DATE_PATCH - .top
 
-	dw	CLK_START1 + 1 - .top
-	dw	CLK_START2 + 1 - .top
-	dw	CLK_END1 + 1 - .top
+	dw	CLK_START1 - .top
+	dw	CLK_START2 - .top
+	dw	CLK_END1 - .top
 
 	dw	HIMEM_PATCH_DOS2 - .top
 	dw	HIMEM_PATCH_DOS1 - .top
@@ -35,10 +35,10 @@ INIT2_PATCH:
 	or	a
 
 	call	z, MSX1_INIT2_PATCH
-	call	nz, FS4600F_INIT2_PATCH
+	call	nz, PANASONIC_INIT2_PATCH
 
 	;INIT2: Nextor initialize
-ORIGINAL_INIT2_ADDRESS:
+ORIGINAL_INIT2_ADDRESS equ $+1
 	ld	hl, 0
 
 	jr	JUMPHL_NEXTOR_BANK0
@@ -50,7 +50,7 @@ CLEAN_PATCH:
 	call	DETECT_MACHINES
 
 	;CLEAN: Nextor H.RUNC handler
-ORIGINAL_CLEAN_ADDRESS:
+ORIGINAL_CLEAN_ADDRESS equ $+1
 	ld	hl, 0
 
 JUMPHL_NEXTOR_BANK0:
