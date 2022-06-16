@@ -238,7 +238,15 @@ PANASONIC_INIT2_PATCH:
 	ld	a, d
 	jp	WRSLT
 
+.magic_vje80a:
+	db	'JWrite'
+.magic_vje80a_end:
+
 .check_fs4600f:
+	ld	a, (EXPTBL)
+	add	a
+	jr	nc, .noext
+
 	ld	bc, 88h+(.magic_fs4600f_end - .magic_fs4600f)*256
 	ld	de, 0B9C6h
 	call	CMP_SLOT
@@ -246,7 +254,8 @@ PANASONIC_INIT2_PATCH:
 	db	'Matsushita 1985'
 .magic_fs4600f_end:
 
-.magic_vje80a:
-	db	'JWrite'
-.magic_vje80a_end:
+.noext:
+	pop	hl
+	ret
+
 

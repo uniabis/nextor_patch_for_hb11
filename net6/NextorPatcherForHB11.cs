@@ -598,7 +598,7 @@ namespace NextorPatcherForHB11
 #if NETCOREAPP
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            const string title = "NextorPatch For HB-11 version 0.0.7\n";
+            const string title = "NextorPatch For HB-11 version 0.0.8\n";
 
             string exe = ( Assembly.GetEntryAssembly()?.FullName ?? string.Empty )
                 .Split( ',' ).First();

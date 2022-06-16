@@ -1,4 +1,4 @@
-﻿# NextorPatch For HB-11 version 0.0.7
+﻿# NextorPatch For HB-11 version 0.0.8
 
 ## 概要
 
