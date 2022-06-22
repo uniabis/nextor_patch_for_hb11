@@ -7,5 +7,7 @@ sjasmplus --raw=hb11nex_search_himem_code.bin hb11nex_search_himem_code.asm
 sjasmplus --raw=hb11nex_bank0.bin hb11nex_bank0.asm
 sjasmplus --raw=hb11nex_bank3.bin hb11nex_bank3.asm
 sjasmplus --raw=hb11nex_bank4.bin hb11nex_bank4.asm
+sjasmplus --raw=hb11nex_nextor_2_1_0_beta1_code.bin hb11nex_nextor_2_1_0_beta1_code.asm
+sjasmplus --raw=hb11nex_search_nextor_2_1_0_beta1_code.bin hb11nex_search_nextor_2_1_0_beta1_code.asm
 
 pause

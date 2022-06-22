@@ -1,4 +1,4 @@
-; ROMSKIP
+; NEXTOR PATCH to skip initialization of later slots
 
 ; Nextor entries
 GSLOT1	equ	402Dh
@@ -11,54 +11,77 @@ ROMSKIP_PATCH:
 	and	24h
 	ret	nz
 
+	; get Nextor kernel slot
 	xor	a
 	ld	ix, GSLOT1
 	call	CALBNK
+	ld	e, a
 
+	; calculate spbase 
 	ld	hl, 06h + 2
-	add	a
-	jr	nc, .noext1
+	bit	7, e
+	jr	z, .noext1
 	ld	l, 0Eh + 2
 .noext1:
 
 	add	hl, sp
+	; hl=spbase
 
-	push	hl
-	pop	ix
-
-	ld	a, (ix + 1)
-	or	a
+	; check current slot
+	cpi	; (spbase+0)
 	ret	nz
 
-	ld	a, (ix + 2)
-	cp	04h
+	; check value of SLTATR
+	xor	a
+	cpi	; (spbase+1)
 	ret	nz
 
-	ld	a, (ix + 3)
-	cp	40h
+	; check INIT address in ROM header of page1(4004h)
+	ld	a, 04h
+	cpi	; (spbase+2)
+	ret	nz
+	ld	a, 40h
+	cpi	; (spbase+3)
 	ret	nz
 
-	ld	a, (ix + 7)
-	cp	0FCh
+	; get pointer of SLTATR
+	ld	c, (hl)	; (spbase+4)
+	inc	hl
+	ld	b, (hl)	; (spbase+5)
+	inc	hl
+	inc	hl
+
+	; check high address of EXPTBL
+	ld	a, high EXPTBL
+	cp	(hl)	; (spbase+7)
 	ret	nz
 
-	ld	l, (ix + 4)
-	ld	h, (ix + 5)
+	; set value of SLTATR
+	ld	a, 60h ; SLTATR value : STATEMENT + DEVICE
+	ld	(bc), a
 
-	ld	(hl), 60h ; SLTATR : STATEMENT + DEVICE
+	dec	hl
+	; set low address of EXPTBL for slot 3(0FCC4h)
+	ld	(hl), low (EXPTBL+3)	; (spbase+6)
+	dec	hl
+	; set dummy pointer of SLTATR
+	ld	(hl), high (SLTWRK+127)	; (spbase+5)
+	dec	hl
+	ld	(hl), low (SLTWRK+127)	; (spbase+4)
+	dec	hl
 
-	bit	7, (ix + 0)
+	; set INIT high address in ROM header of page2(80h)
+	ld	(hl), 080h	; (spbase+3)
 
-	ld	a, 03h ; slot 3
-	jr	z, .noext2
-	ld	a, 8Fh ; slot 3-3
-.noext2:
+	dec	hl
+	dec	hl
+	dec	hl
 
-	ld	(ix + 0), a
-	ld	(ix + 3), 80h ; page 2
-	ld	(ix + 4), 000h
-	ld	(ix + 5), 000h
-	ld	(ix + 6), 0C4h ; 0FCC4h : EXPTBL for slot 3
-
+	; set current slot to slot 3
+	ld	(hl),03h	; (spbase+0)
+	bit	7, e
+	ret	z
+	; set current slot to slot 3-3
+	ld	(hl), 8Fh	; (spbase+0)
 	ret
 

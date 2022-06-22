@@ -1,4 +1,4 @@
-; NEXTOR PATCH for MAPPER on MSX1
+; NEXTOR PATCH for initialization of mapper on MSX1
 
 CHKCD1 equ 05Ah
 CHKCD2 equ 0A5h

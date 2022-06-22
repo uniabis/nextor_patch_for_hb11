@@ -77,9 +77,9 @@ DETECT_MACHINES:
 FOUND:
 
 	ld	hl, H.STKE
-	ld	b, 5
+	ld	bc, 05C9h
 .lp:
-	ld	(hl), 0C9h
+	ld	(hl), c
 	inc	hl
 	djnz .lp
 
@@ -225,7 +225,7 @@ PANASONIC_INIT2_PATCH:
 
 	ldir
 
-	call	.check_fs4600f
+	call	CHECK_FS4600F
 	ret	nz
 
 	ld	hl, 7FF9h
@@ -242,7 +242,7 @@ PANASONIC_INIT2_PATCH:
 	db	'JWrite'
 .magic_vje80a_end:
 
-.check_fs4600f:
+CHECK_FS4600F:
 	ld	a, (EXPTBL)
 	add	a
 	jr	nc, .noext

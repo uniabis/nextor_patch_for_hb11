@@ -1,4 +1,4 @@
-; NO-RTC NEXTOR PATCH
+; NEXTOR PATCH for MSX1 without RTC chip
 
 DEFDATE equ ((1984 - 1980) * 512 + 1 * 32 + 1)
 

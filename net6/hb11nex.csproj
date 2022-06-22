@@ -29,6 +29,12 @@
     <EmbeddedResource Include="../z80/hb11nex_search_rtc_code.bin">
       <Link>bin/hb11nex_search_rtc_code.bin</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\z80\hb11nex_search_nextor_2_1_0_beta1_code.bin">
+      <Link>bin\hb11nex_search_nextor_2_1_0_beta1_code.bin</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\z80\hb11nex_nextor_2_1_0_beta1_code.bin">
+      <Link>bin\hb11nex_nextor_2_1_0_beta1_code.bin</Link>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

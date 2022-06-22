@@ -1,3 +1,4 @@
+; NEXTOR PATCH to release work of MSX-MUSIC 
 
 ; CP/M
 
@@ -243,7 +244,7 @@ GET_MUSWRK:
 	and	06h
 .extended:
 	; 000SSPP0
-	ld	c, a
+	ld	l, a
 	and	06h
 	; 00000PP0
 	add	a
@@ -251,13 +252,14 @@ GET_MUSWRK:
 	add	a
 	add	a
 	; 0PP00000
-	or	c
+	or	l
 	; 0PPSSPP0
 	and	78h
 	; 0PPSS000
-	ld	c, a
-	ld	b, 0
 	ld	hl, SLTWRK + 2
-	add	hl, bc
+	add l
+	ld	l, a
+	;ret	nc
+	;inc	h
 	ret
 
