@@ -90,10 +90,8 @@ mappernotfound:
 	ld	a, e
 	ld	(SSLOT), a
 
-	; set ZF
-	xor	a
-
 	ret
+
 
 copymapper:
 	ldir

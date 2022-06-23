@@ -1,5 +1,9 @@
 ; MACHINE SPECIFIC NEXTOR PATCH
 
+; MSX-DOS work
+
+BOOT_DRV equ 0F2FDh
+
 DETECT_MACHINES:
 
 	call	CHECK_HITBIT
@@ -41,11 +45,12 @@ DETECT_MACHINES:
 	call	CHECK_MSXWRITE
 	jr	z, FOUND
 
-.checkDown:
-	;check [DOWN] key
-	ld	a, (NEWKEY+8)
-	bit	6, a
-	jr	z, FOUND
+	call	CHECK_FSA1GT
+	jr	nc, .checkDown
+
+	; Reset boot drive to prevent boot from ROM drive(VSHELL)
+	xor	a
+	ld	(BOOT_DRV), a
 	ret
 
 .hitSelect1:
@@ -55,7 +60,12 @@ DETECT_MACHINES:
 .hitSelect2:
 	ld	hl, 6474h
 	ld	(USRTAB), hl
-	jr	.checkDown
+.checkDown:
+	;check [DOWN] key
+	ld	a, (NEWKEY+8)
+	bit	6, a
+	jr	z, FOUND
+	ret
 
 .foundHB11:
 
@@ -207,6 +217,33 @@ CHECK_SELECT_KEY:
 	and	40h
 	ret
 
+
+CHECK_FS4600F:
+	ld	a, (EXPTBL)
+	add	a
+	jr	nc, .noext
+
+	ld	bc, 88h+(.magic_fs4600f_end - .magic_fs4600f)*256
+	ld	de, 0B9C6h
+	call	CMP_SLOT
+.magic_fs4600f:
+	db	'Matsushita 1985'
+.magic_fs4600f_end:
+
+.noext:
+	pop	hl
+	ret
+
+
+CHECK_FSA1GT:
+	ld	a, (EXPTBL)
+	ld	hl, IDBYT3
+	call	RDSLT
+
+	rra
+	ret
+
+
 PANASONIC_INIT2_PATCH:
 
 	call	CHECK_SELECT_KEY
@@ -241,21 +278,3 @@ PANASONIC_INIT2_PATCH:
 .magic_vje80a:
 	db	'JWrite'
 .magic_vje80a_end:
-
-CHECK_FS4600F:
-	ld	a, (EXPTBL)
-	add	a
-	jr	nc, .noext
-
-	ld	bc, 88h+(.magic_fs4600f_end - .magic_fs4600f)*256
-	ld	de, 0B9C6h
-	call	CMP_SLOT
-.magic_fs4600f:
-	db	'Matsushita 1985'
-.magic_fs4600f_end:
-
-.noext:
-	pop	hl
-	ret
-
-

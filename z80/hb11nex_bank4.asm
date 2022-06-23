@@ -31,11 +31,7 @@ OFFSET_TABLE:
 INIT2_PATCH:
 	call	ROMSKIP_PATCH
 
-	ld	a, (IDBYT2)
-	or	a
-
-	call	z, MSX1_INIT2_PATCH
-	call	nz, PANASONIC_INIT2_PATCH
+	call	DETECT_MODELS
 
 	;INIT2: Nextor initialize
 ORIGINAL_INIT2_ADDRESS equ $+1
@@ -78,9 +74,16 @@ HIMEM_RET:
 	ld	(HIMEM), hl
 	jr	JUMP_NEXTOR_CHGBNK
 
-	include	hb11nex_msx1_mapper_patch.inc
-
 	include	hb11nex_machine_specific_patch.inc
+
+DETECT_MODELS:
+	ld	a, (IDBYT2)
+	or	a
+
+	jr	nz, PANASONIC_INIT2_PATCH
+	;jr	MSX1_INIT2_PATCH
+
+	include	hb11nex_msx1_mapper_patch.inc
 
 	include	hb11nex_nortc_patch.inc
 

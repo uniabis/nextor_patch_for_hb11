@@ -1,6 +1,9 @@
 ; NEXTOR PATCH for MSX1 without RTC chip
 
+; DOS1 default Jan/1st/1984
 DEFDATE equ ((1984 - 1980) * 512 + 1 * 32 + 1)
+; or invalid date
+;DEFDATE equ 0
 
 ; MSX-DOS work
 TIMFLG equ 0F338h

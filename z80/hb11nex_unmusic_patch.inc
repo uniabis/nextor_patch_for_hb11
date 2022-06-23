@@ -53,11 +53,7 @@ FREE_MSXMUSIC:
 	bit	0, (hl)
 	ret	z
 
-	ld	a, (EXPTBL)
-	ld	hl, IDBYT3
-	call	RDSLT
-
-	rra
+	call	CHECK_FSA1GT
 
 	ld	a, (MUSSLT)
 
