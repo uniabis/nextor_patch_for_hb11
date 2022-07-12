@@ -24,20 +24,20 @@ OFFSET_TABLE:
 BANK0_INIT2_PATCH:
 BANK4_INIT2_LO_ADDRESS equ $+1
 	ld	a, 0
-	db	21h		;instruction code for "LD HL, nnnn"
 
+	db	21h		;instruction code for "LD HL, nnnn"
 BANK0_CLEAN_PATCH:
 BANK4_CLEAN_LO_ADDRESS equ $+1
 	ld	a, 0
-	db	21h		;instruction code for "LD HL, nnnn"
 
+	db	21h		;instruction code for "LD HL, nnnn"
 BANK0_HIMEM_PATCH:
 BANK4_HIMEM_LO_ADDRESS equ $+1
 	ld	a, 0
 
+;	db	21h		;instruction code for "LD HL, nnnn"
 ;4TH_PATCH:
 ;BANK4_4TH_LO_ADDRESS equ $+1
-;	db	21h		;instruction code for "LD HL, nnnn"
 ;	ld	a, 0
 
 	ld	l, a

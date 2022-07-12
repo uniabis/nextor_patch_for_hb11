@@ -4,7 +4,7 @@
 
 BOOT_DRV equ 0F2FDh
 
-DETECT_MACHINES:
+DETECT_MACHINES_CLEAN:
 
 	call	CHECK_HITBIT
 	db	83h
@@ -40,6 +40,9 @@ DETECT_MACHINES:
 	jr	z, FOUND
 
 	call	CHECK_MBH3
+	jr	z, FOUND
+
+	call	CHECK_NMS8220
 	jr	z, FOUND
 
 	call	CHECK_MSXWRITE
@@ -198,6 +201,24 @@ CHECK_MBH3:
 	db	'H3',0,'HCOPY'
 .magic_end:
 
+CHECK_NMS8220:
+	ld	de,4042h	; 12 june 1986
+	call	.june
+	ret	z
+	ld	de,709Ah	; 13 augustus 1986
+.june:
+	ld	a,8Fh
+	call	CHECK_H_STEK
+	ret	nz
+
+	ld	b, .magic_end - .magic
+	ld	de, 706Ch
+	call	CMP_SLOT
+.magic:
+	db	'Philips'
+.magic_end:
+
+
 CHECK_MSXWRITE:
 	ld	a, (H.STKE+1)
 	call	CHECK_H_STEK_402E
@@ -250,10 +271,15 @@ PANASONIC_INIT2_PATCH:
 	ret	z
 
 	ld	a, 23h
+
 	;FS-A1
 	ld	(0CBD8H), a
-	ld	(0C3D2H), a
+
+	;FS-A1F
 	ld	(0C3CEH), a
+
+	;FS-A1MK2
+	ld	(0C3D2H), a
 
 	;FS-A1WX/ST
 	ld	hl, .magic_vje80a

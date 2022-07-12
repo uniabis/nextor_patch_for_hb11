@@ -31,7 +31,7 @@ OFFSET_TABLE:
 INIT2_PATCH:
 	call	ROMSKIP_PATCH
 
-	call	DETECT_MODELS
+	call	DETECT_MACHINES_INIT2
 
 	;INIT2: Nextor initialize
 ORIGINAL_INIT2_ADDRESS equ $+1
@@ -43,7 +43,7 @@ CLEAN_PATCH:
 
 	call	NO_RTC_PATCH_INIT
 
-	call	DETECT_MACHINES
+	call	DETECT_MACHINES_CLEAN
 
 	;CLEAN: Nextor H.RUNC handler
 ORIGINAL_CLEAN_ADDRESS equ $+1
@@ -76,7 +76,7 @@ HIMEM_RET:
 
 	include	hb11nex_machine_specific_patch.inc
 
-DETECT_MODELS:
+DETECT_MACHINES_INIT2:
 	ld	a, (IDBYT2)
 	or	a
 
