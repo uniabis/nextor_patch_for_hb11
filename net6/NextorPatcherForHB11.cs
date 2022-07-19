@@ -7,7 +7,7 @@ using System.Text;
 namespace NextorPatcherForHB11
 
 {
-    public class NextorPatcherForHB11Parameter
+    internal class NextorPatcherForHB11Parameter
     {
         public bool Valid { get; private set; }
         public string InputPath { get; private set; }
@@ -53,7 +53,7 @@ namespace NextorPatcherForHB11
         }
     }
 
-    public class NextorPatcherForHB11
+    internal class NextorPatcherForHB11
     {
         private const int NEXTOR_KERNEL_BASE_ADDRSS = 0x4000;
         private const int NEXTOR_KERNEL_VERSION_OFFSET = 0x11E;
@@ -627,7 +627,7 @@ namespace NextorPatcherForHB11
 #if NETCOREAPP
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 #endif
-            const string title = "NextorPatch For HB-11 version 0.0.11\n";
+            const string title = "NextorPatch For HB-11 version 0.0.12\n";
 
             string exe = ( Assembly.GetEntryAssembly()?.FullName ?? string.Empty )
                 .Split( ',' ).First();

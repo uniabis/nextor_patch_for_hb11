@@ -6,6 +6,7 @@ BOOT_DRV equ 0F2FDh
 
 DETECT_MACHINES_CLEAN:
 
+	; HB-11
 	call	CHECK_HITBIT
 	db	83h
 	dw	5E60h, 5DB2h
@@ -14,40 +15,55 @@ DETECT_MACHINES_CLEAN:
 	call	CHECK_SELECT_KEY
 	jr	z, .hitSelect1
 
+	; HB-101/101P/201/201P
 	call	CHECK_HITBIT
 	db	03h
 	dw	4043h, 4027h
 	jr	z, FOUND
 
+	; HB-F1
 	call	CHECK_HITBIT
 	db	87h
 	dw	4076h, 4042h
 	jr	z, FOUND
 
+	; HB-F1II
 	call	CHECK_HITBIT
 	db	87h
 	dw	4079h, 4045h
 	jr	z, FOUND
 
+	; HB-F5
 	call	CHECK_HITBIT
 	db	84h
 	dw	4051h, 4027h
 	jr	z, FOUND
 
+	; HB-F9P/F9S
 	call	CHECK_HITBIT
 	db	87h
 	dw	405Ch, 40B8h
 	jr	z, FOUND
 
+	; MB-H3
 	call	CHECK_MBH3
 	jr	z, FOUND
 
+	; NMS-8220
 	call	CHECK_NMS8220
 	jr	z, FOUND
 
+	; ML-G1/G10
+	ld	a, 8Fh
+	ld	de, 4039h
+	call	CHECK_H_STEK
+	jr	z, FOUND
+
+	; MSX-Write/PHC-77
 	call	CHECK_MSXWRITE
 	jr	z, FOUND
 
+	; FS-A1GT
 	call	CHECK_FSA1GT
 	jr	nc, .checkDown
 
@@ -272,22 +288,23 @@ PANASONIC_INIT2_PATCH:
 
 	ld	a, 23h
 
-	;FS-A1
+	; FS-A1
 	ld	(0CBD8H), a
 
-	;FS-A1F
+	; FS-A1F
 	ld	(0C3CEH), a
 
-	;FS-A1MK2
+	; FS-A1MK2
 	ld	(0C3D2H), a
 
-	;FS-A1WX/ST
+	; FS-A1WX/ST
 	ld	hl, .magic_vje80a
 	ld	de, 0C010h
 	ld	bc, .magic_vje80a_end - .magic_vje80a
 
 	ldir
 
+	; FS-4600F
 	call	CHECK_FS4600F
 	ret	nz
 
