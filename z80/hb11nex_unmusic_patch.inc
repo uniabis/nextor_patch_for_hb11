@@ -1,14 +1,8 @@
 ; NEXTOR PATCH to release work of MSX-MUSIC 
 
-; CP/M
-
-BDOS	equ	0005h
-_STROUT	equ	09h
-
 ; MSX-DOS
 
 HIMSAV	equ	0F349h
-BASBDOS	equ	0F37Dh
 
 DOS1SIZFCB	equ	25h
 DOS1NUMFCB	equ	0F345h
@@ -31,7 +25,6 @@ DOS2SIZBLD	equ	0Dh
 ; Nextor
 
 NEXMFLAGKILL	equ	4
-;NEXMAXSEC	equ	0F6ABh
 
 ; MSX-MUSIC
 
