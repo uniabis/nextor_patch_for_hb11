@@ -4,9 +4,11 @@
 
 ### 本パッチの概要
 
-SONY最後のMSX1であるHB-11(HiTBiT-U)では、スロット3-0にある内蔵メニューの影響で、NEXTORがDOS1モードでしか起動できません。
+SONY最後のMSX1であるHB-11(HiTBiT-U)では、スロット3-0にある内蔵メニューの影響で、[Nextor 2](https://github.com/Konamiman/Nextor)はDOS1モードでしか起動できません。
 
 フラッシュメモリなどにより容易に修正可能な場合が多いNEXTOR側を改造することにより内蔵メニューと共存可能にします。
+
+Nextor 3にはHB-11(HiTBiT-U)などで起動するための機能(ブートキー「6」)が搭載されているため本パッチでは対応しません。
 
 本パッチを適用したNEXTORでは、初期化が僅かに遅くなりますが、HB-11以外の機種でも下記の機能が有効となります。
 
@@ -35,31 +37,26 @@ SONY最後のMSX1であるHB-11(HiTBiT-U)では、スロット3-0にある内蔵
 
 ### 対応NEXTORバージョン
 
-```
-2.1.3
-2.1.2
-2.1.1
-2.1.1 beta2
-2.1.1 beta1
-2.1.1 alpha2
-2.1.1 alpha1
-2.1.0
-2.1.0 rc1
-2.1.0 beta2
-2.1.0 beta1
-```
++ [2.1.4](https://github.com/Konamiman/Nextor/releases/tag/v2.1.4)
++ [2.1.3](https://github.com/Konamiman/Nextor/releases/tag/v2.1.3)
++ [2.1.2](https://github.com/Konamiman/Nextor/releases/tag/v2.1.2)
++ [2.1.1](https://github.com/Konamiman/Nextor/releases/tag/v2.1.1)
++ [2.1.1 beta2](https://github.com/Konamiman/Nextor/releases/tag/v2.1.1-beta-2)
++ [2.1.1 beta1](https://github.com/Konamiman/Nextor/releases/tag/v2.1.1-beta-1)
++ [2.1.1 alpha2](https://github.com/Konamiman/Nextor/releases/tag/v2.1.1-alpha-2)
++ [2.1.1 alpha1](https://github.com/Konamiman/Nextor/releases/tag/v2.1.1-alpha-1)
++ [2.1.0](https://github.com/Konamiman/Nextor/releases/tag/v2.1.0)
++ [2.1.0 rc1](https://github.com/Konamiman/Nextor/releases/tag/v2.1.0-RC)
++ [2.1.0 beta2](https://github.com/Konamiman/Nextor/releases/tag/v2.1.0-beta2)
++ [2.1.0 beta1](https://github.com/Konamiman/Nextor/releases/tag/v2.1.0-beta1)
 
 ### 動作確認デバイス
 
-```
-Carnivore2
-Fractal2000 SD Mapper/Megaram 512KB
-似非RAM Maximum
-```
++ [Carnivore2](https://github.com/RBSC/Carnivore2)
++ [Fractal2000 SD Mapper/Megaram 512KB](https://github.com/fbelavenuto/msxsdmapper)
++ [似非RAM Maximum](http://niga2.sytes.net/sp/index.html)
 
 Fractal2000 SD Mapper/Megaram 512KBについてはドライバーがNextor 2.1.xに対応していなかったため、[修正](https://github.com/uniabis/msxsdmapper)後、動作確認しました。DEV_CMDとDEV_FORMATを実装しただけです。
-
-似非RAM MaximumについてはNextorPatcherがNextor 2.1.1 beta2に対応していなかったため、xml変更後、動作確認しました。ハッシュ値を追加してturboパッチのアドレスを7500hから7600hに移動しただけです。新機能を試したい場合以外は2.1.0で問題ないものと思います。
 
 ## 詳細
 
